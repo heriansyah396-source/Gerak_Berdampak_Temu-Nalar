@@ -1,0 +1,6 @@
+{
+  "name": "GERAK BERDAMPAK: Temu Nalar Literasi-Numerasi",
+  "description": "Pendampingan Pengawas Sekolah untuk Menguatkan Kemampuan Berpikir Kritis dan Komunikatif Siswa",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
