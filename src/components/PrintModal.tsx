@@ -454,7 +454,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
 
           <!-- III. CATATAN REFLEKSI & OBSERVASI -->
           <div class="section-box">
-            <div class="section-title">III. Catatan Observasi Lapangan & Refleksi Diri Guru</div>
+            <div class="section-title">III. Catatan Observasi Lapangan & Refleksi Diri (Guru & Kepala Sekolah)</div>
             ${
               sReflections.length > 0 || sGerak.length > 0
                 ? sReflections
@@ -462,7 +462,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                       (r) => `
                   <div class="item-card">
                     <div style="font-weight: bold; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; margin-bottom: 4px;">
-                      Refleksi Mandiri: ${r.teacherName} (${r.subject}) • Kategori: ${r.category} (${r.totalScore}/${r.maxScore})
+                      ${r.role === 'kepala_sekolah' ? 'Refleksi Kepala Sekolah' : 'Refleksi Mandiri Guru'}: ${r.teacherName} (${r.subject || (r.role === 'kepala_sekolah' ? 'Kepemimpinan Pembelajaran' : 'Matematika/Tematik')}) • Kategori: ${r.category} (${r.totalScore}/${r.maxScore})
                     </div>
                     <div><strong>Kekuatan:</strong> ${r.strengths.join(' • ')}</div>
                     <div><strong>Fokus Penguatan:</strong> ${r.areasToImprove.join(' • ')}</div>
@@ -1125,26 +1125,26 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           </div>
         </div>
 
-        {/* BAGIAN III: REFLEKSI GURU & CATATAN OBSERVASI GERAK */}
+        {/* BAGIAN III: REFLEKSI GURU & KEPALA SEKOLAH & CATATAN OBSERVASI GERAK */}
         <div className="space-y-2">
           <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1">
-            III. Catatan Observasi Lapangan & Refleksi Diri Guru
+            III. Catatan Observasi Lapangan & Refleksi Diri (Guru & Kepala Sekolah)
           </h2>
-
           {sReflections.length > 0 || sGerak.length > 0 ? (
             <div className="space-y-2 text-xs">
               {sReflections.map((ref) => (
                 <div key={ref.id} className="p-3 rounded-lg border border-slate-200 space-y-1">
                   <div className="flex justify-between font-bold border-b border-slate-100 pb-1">
                     <span className="text-slate-800">
-                      Refleksi Mandiri: {ref.teacherName} ({ref.subject})
+                      {ref.role === 'kepala_sekolah' ? 'Refleksi Kepala Sekolah: ' : 'Refleksi Mandiri Guru: '}
+                      {ref.teacherName} ({ref.subject || (ref.role === 'kepala_sekolah' ? 'Kepemimpinan Pembelajaran' : 'Matematika/Tematik')})
                     </span>
                     <span className="text-blue-800">
                       Skor: {ref.totalScore}/{ref.maxScore} ({ref.category})
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-700">
-                    <strong>Kekuatan Mengajar:</strong> {ref.strengths.join(' • ')}
+                    <strong>{ref.role === 'kepala_sekolah' ? 'Kekuatan Kepemimpinan:' : 'Kekuatan Mengajar:'}</strong> {ref.strengths.join(' • ')}
                   </div>
                   <div className="text-[11px] text-slate-700">
                     <strong>Fokus Penguatan:</strong> {ref.areasToImprove.join(' • ')}

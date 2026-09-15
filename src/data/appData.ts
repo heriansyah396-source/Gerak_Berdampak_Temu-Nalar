@@ -1022,50 +1022,111 @@ export const TEACHING_STRATEGIES: TeachingStrategy[] = [
   },
 ];
 
-export const REFLECTION_QUESTIONS: ReflectionQuestion[] = [
+export const REFLECTION_QUESTIONS_GURU: ReflectionQuestion[] = [
   {
     id: 1,
     statement:
       'Saya memberi kesempatan siswa menjelaskan isi soal cerita menggunakan bahasa sendiri sebelum mereka menyentuh rumus/angka.',
     aspect: 'Pemahaman Isi & Model Mental',
+    targetRole: 'guru',
   },
   {
     id: 2,
     statement:
       'Saya meminta dan membiasakan siswa menandai secara spesifik informasi yang diketahui serta informasi yang ditanyakan.',
     aspect: 'Identifikasi Informasi Kunci',
+    targetRole: 'guru',
   },
   {
     id: 3,
     statement:
       'Saya membimbing siswa memilih operasi hitung berdasarkan alasan logis (kenapa kali, kenapa bagi), bukan sekadar menebak.',
     aspect: 'Nalar Pemilihan Operasi',
+    targetRole: 'guru',
   },
   {
     id: 4,
     statement:
       'Saya menggunakan soal kontekstual yang dekat dan relevan dengan kehidupan siswa di lingkungan sekitar sekolah.',
     aspect: 'Kontekstualisasi Pembelajaran',
+    targetRole: 'guru',
   },
   {
     id: 5,
     statement:
       'Saya memberikan umpan balik hangat terhadap proses berpikir nalar siswa, bukan hanya menyalahkan hasil akhir angka yang keliru.',
     aspect: 'Umpan Balik Konstruktif',
+    targetRole: 'guru',
   },
   {
     id: 6,
     statement:
       'Saya memberi ruang dan kesempatan bagi siswa untuk berdiskusi, berargumen, dan mengomunikasikan jawabannya.',
     aspect: 'Komunikasi & Kolaborasi Siswa',
+    targetRole: 'guru',
   },
   {
     id: 7,
     statement:
       'Saya menggunakan data hasil asesmen/kesulitan berpikir siswa untuk memperbaiki strategi dan perangkat mengajar di kelas berikutnya.',
     aspect: 'Pembelajaran Berbasis Bukti (Data-Driven)',
+    targetRole: 'guru',
   },
 ];
+
+export const REFLECTION_QUESTIONS_KS: ReflectionQuestion[] = [
+  {
+    id: 101,
+    statement:
+      'Saya memimpin dewan guru menganalisis data capaian nalar literasi-numerasi (Rapor Pendidikan & asesmen awal) untuk menentukan prioritas program dan alokasi anggaran sekolah (ARKAS/BOS).',
+    aspect: 'Kepemimpinan Pembelajaran Berbasis Data',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 102,
+    statement:
+      'Saya melaksanakan supervisi akademik rutin berorientasi coaching kemitraan untuk mengamati cara guru memandu nalar kritis siswa di kelas, bukan sekadar memeriksa kelengkapan administrasi.',
+    aspect: 'Supervisi Akademik Dialogis (Coaching)',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 103,
+    statement:
+      'Saya mengalokasikan jam khusus dan memfasilitasi Komunitas Belajar (Kombel) sekolah secara berkala agar para guru dapat membedah kesulitan nalar siswa dan merancang modul ajar bersama.',
+    aspect: 'Aktivasi Komunitas Belajar (Kombel) Guru',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 104,
+    statement:
+      'Saya memastikan tersedianya lingkungan kaya literasi-numerasi di sekolah, termasuk pojok baca kelas, stimulus visual, dan media konkret manipulatif untuk belajar bernalar.',
+    aspect: 'Penyediaan Sarana & Ekosistem Nalar',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 105,
+    statement:
+      'Saya mendorong guru mengembangkan bahan ajar kontekstual berbasis potensi lokal Tellu Limpoe / Sidrap (misal: siklus pertanian padi sawah, peternakan lokal, energi kincir angin PLTB).',
+    aspect: 'Dukungan Kontekstualisasi Kearifan Lokal',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 106,
+    statement:
+      'Saya membangun iklim sekolah yang aman, suportif, dan apresiatif sehingga guru dan siswa berani mencoba inovasi pembelajaran tanpa takut dinilai salah.',
+    aspect: 'Budaya Sekolah Ramah Eksplorasi & Inovasi',
+    targetRole: 'kepala_sekolah',
+  },
+  {
+    id: 107,
+    statement:
+      'Saya proaktif berdialog dengan Pengawas Sekolah dalam alur GERAK serta mendukung guru berkolaborasi lintas sekolah binaan di wilayah Kecamatan Tellu Limpoe.',
+    aspect: 'Kemitraan Pengawasan & Kolaborasi Antar-Sekolah',
+    targetRole: 'kepala_sekolah',
+  },
+];
+
+export const REFLECTION_QUESTIONS: ReflectionQuestion[] = REFLECTION_QUESTIONS_GURU;
 
 export const INITIAL_IMPACT_DATA: ImpactData = {
   schoolCount: 25,

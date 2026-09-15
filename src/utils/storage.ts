@@ -122,6 +122,13 @@ export const saveReflection = (report: ReflectionReport): ReflectionReport[] => 
   return updated;
 };
 
+export const deleteReflection = (id: string): ReflectionReport[] => {
+  const current = getReflections();
+  const updated = current.filter((r) => r.id !== id);
+  localStorage.setItem(KEYS.REFLECTIONS, JSON.stringify(updated));
+  return updated;
+};
+
 export const getImpactData = (): ImpactData => {
   try {
     const data = localStorage.getItem(KEYS.IMPACT);

@@ -108,10 +108,13 @@ export interface TeachingStrategy {
   recommendedLevels: ('SD' | 'SMP')[];
 }
 
+export type ReflectionTargetRole = 'guru' | 'kepala_sekolah';
+
 export interface ReflectionQuestion {
   id: number;
   statement: string;
   aspect: string;
+  targetRole?: ReflectionTargetRole;
 }
 
 export interface ReflectionAnswer {
@@ -122,10 +125,12 @@ export interface ReflectionAnswer {
 export interface ReflectionReport {
   id: string;
   date: string;
-  teacherName: string;
+  role?: ReflectionTargetRole; // 'guru' | 'kepala_sekolah' (default 'guru')
+  teacherName: string; // nama guru atau nama kepala sekolah
+  principalName?: string;
   schoolName: string;
   level: 'SD' | 'SMP';
-  subject: string;
+  subject: string; // misal 'Matematika / Tematik' untuk Guru atau 'Kepemimpinan Pembelajaran' untuk KS
   totalScore: number;
   maxScore: number;
   percentage: number;
