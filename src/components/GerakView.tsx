@@ -17,6 +17,7 @@ import { GerakRecord, NavTab } from '../types';
 import { GERAK_STAGES, SCHOOL_LIST_TELLU_LIMPOE, OFFICIAL_SCHOOLS_TELLU_LIMPOE } from '../data/appData';
 import { getGerakRecords, saveGerakRecord, deleteGerakRecord } from '../utils/storage';
 import { StagePagination } from './StagePagination';
+import { ArtefakBedahNalar } from './ArtefakBedahNalar';
 
 interface GerakViewProps {
   onNavigate: (tab: NavTab) => void;
@@ -150,9 +151,16 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                   >
                     {st.letter}
                   </span>
-                  <span className={`text-[10px] font-bold ${isActive ? 'text-blue-300' : 'text-slate-400'}`}>
-                    Tahap {idx + 1}
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`text-[10px] font-bold ${isActive ? 'text-blue-300' : 'text-slate-400'}`}>
+                      Tahap {idx + 1}
+                    </span>
+                    {(st.letter === 'G' || st.letter === 'E') && (
+                      <span className="mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-400 text-amber-950 uppercase tracking-tighter">
+                        Bedah Nalar
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className={`text-xs font-extrabold leading-snug line-clamp-2 ${isActive ? 'text-white' : 'text-slate-900'}`}>
                   {st.title}
@@ -231,6 +239,9 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                 </ul>
               </div>
             </div>
+
+            {/* Pedoman Praktik Baik: Bedah Artefak Berpikir Siswa (Khusus Tahap G & E) */}
+            <ArtefakBedahNalar currentStageLetter={activeStage.letter} />
           </div>
         )}
       </div>

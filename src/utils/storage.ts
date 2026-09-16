@@ -6,12 +6,14 @@ import {
   SchoolProgressItem,
   DocPhoto,
   BackupPackage,
+  MicroCommitment,
 } from '../types';
 import {
   INITIAL_ACTION_PLANS,
   INITIAL_GERAK_RECORDS,
   INITIAL_IMPACT_DATA,
   INITIAL_SCHOOL_PROGRESS,
+  INITIAL_MICRO_COMMITMENTS,
 } from '../data/appData';
 
 const KEYS = {
@@ -24,6 +26,7 @@ const KEYS = {
   OBSERVED_PROBLEMS: 'gerak_berdampak_observed_problems',
   SCHOOL_PROGRESS: 'gerak_berdampak_school_progress',
   DOC_PHOTOS: 'gerak_berdampak_doc_photos',
+  MICRO_COMMITMENTS: 'gerak_berdampak_micro_commitments',
 };
 
 export const INITIAL_DOC_PHOTOS: DocPhoto[] = [
@@ -291,6 +294,59 @@ export const initializeStorage = () => {
   }
 };
 
+export const getMicroCommitments = (): MicroCommitment[] => {
+  try {
+    const data = localStorage.getItem(KEYS.MICRO_COMMITMENTS);
+    if (!data) return INITIAL_MICRO_COMMITMENTS;
+    const parsed: MicroCommitment[] = JSON.parse(data);
+    return parsed;
+  } catch (e) {
+    console.error('Failed to read micro-commitments', e);
+    return INITIAL_MICRO_COMMITMENTS;
+  }
+};
+
+export const saveMicroCommitment = (item: MicroCommitment): MicroCommitment[] => {
+  const current = getMicroCommitments();
+  const exists = current.some((c) => c.id === item.id);
+  const updated = exists
+    ? current.map((c) => (c.id === item.id ? item : c))
+    : [item, ...current];
+  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  return updated;
+};
+
+export const deleteMicroCommitment = (id: string): MicroCommitment[] => {
+  const current = getMicroCommitments();
+  const updated = current.filter((c) => c.id !== id);
+  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  return updated;
+};
+
+export const toggleCommitmentDay = (id: string, day: number): MicroCommitment[] => {
+  const current = getMicroCommitments();
+  const updated = current.map((c) => {
+    if (c.id !== id) return c;
+    const newProgress = { ...c.daysProgress, [day]: !c.daysProgress[day] };
+    const completedDays = Object.values(newProgress).filter(Boolean).length;
+    let newStatus = c.status;
+    if (completedDays === 14) {
+      newStatus = 'Tuntas Berdampak';
+    } else if (completedDays >= 7 && c.status === 'Aktif Berjalan') {
+      newStatus = 'Review Hari Ke-7';
+    } else if (completedDays < 7 && c.status === 'Review Hari Ke-7') {
+      newStatus = 'Aktif Berjalan';
+    }
+    return {
+      ...c,
+      daysProgress: newProgress,
+      status: newStatus,
+    };
+  });
+  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  return updated;
+};
+
 export const resetAllData = () => {
   localStorage.removeItem(KEYS.GERAK);
   localStorage.removeItem(KEYS.RTL);
@@ -299,11 +355,13 @@ export const resetAllData = () => {
   localStorage.removeItem(KEYS.OBSERVED_PROBLEMS);
   localStorage.removeItem(KEYS.SCHOOL_PROGRESS);
   localStorage.removeItem(KEYS.DOC_PHOTOS);
+  localStorage.removeItem(KEYS.MICRO_COMMITMENTS);
   localStorage.setItem(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
   localStorage.setItem(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
   localStorage.setItem(KEYS.IMPACT, JSON.stringify(INITIAL_IMPACT_DATA));
   localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
   localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(INITIAL_MICRO_COMMITMENTS));
 };
 
 /**
@@ -324,6 +382,7 @@ export const exportAllDataJson = (): string => {
       docPhotos: getDocPhotos(),
       observedProblems: getObservedProblems(),
       impactData: getImpactData(),
+      microCommitments: getMicroCommitments(),
     },
   };
   return JSON.stringify(backup, null, 2);
@@ -367,6 +426,9 @@ export const importAllDataJson = (
     }
     if (payload.impactData && typeof payload.impactData === 'object') {
       localStorage.setItem(KEYS.IMPACT, JSON.stringify(payload.impactData));
+    }
+    if (Array.isArray(payload.microCommitments)) {
+      localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(payload.microCommitments));
     }
 
     return {

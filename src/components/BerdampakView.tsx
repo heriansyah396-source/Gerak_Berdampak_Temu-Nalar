@@ -11,6 +11,7 @@ import {
 import { NavTab } from '../types';
 import { BERDAMPAK_STAGES } from '../data/appData';
 import { StagePagination } from './StagePagination';
+import { MikroKomitmenForm } from './MikroKomitmenForm';
 
 interface BerdampakViewProps {
   onNavigate: (tab: NavTab) => void;
@@ -81,6 +82,11 @@ export const BerdampakView: React.FC<BerdampakViewProps> = ({ onNavigate }) => {
                 <span className="text-[9px] font-semibold text-slate-300 truncate w-full mt-1">
                   {step.title.split(' ')[0]}
                 </span>
+                {(step.letter === 'R' || step.stepNumber === 5) && (
+                  <span className="absolute -top-1.5 -right-1 px-1 py-0.2 rounded text-[8px] font-black bg-emerald-400 text-emerald-950 uppercase shadow-xs">
+                    14 Hari
+                  </span>
+                )}
               </button>
             );
           })}
@@ -132,6 +138,14 @@ export const BerdampakView: React.FC<BerdampakViewProps> = ({ onNavigate }) => {
                 </h3>
               </div>
             </div>
+
+            <a
+              href="#formulir-mikro-komitmen"
+              className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-extrabold transition inline-flex items-center gap-2 self-start sm:self-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Buka Formulir Mikro-Komitmen 14 Hari ↓</span>
+            </a>
           </div>
 
           <p className="text-sm sm:text-base text-slate-700 leading-relaxed">
@@ -185,6 +199,9 @@ export const BerdampakView: React.FC<BerdampakViewProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      {/* Formulir Mikro-Komitmen 14 Hari Guru (Inovasi Kebaruan Pengawasan Berdampak) */}
+      <MikroKomitmenForm />
 
       <StagePagination
         prevTab="alur-gerak"

@@ -216,6 +216,32 @@ export interface DocPhoto {
   dataUrl: string; // base64 data url
 }
 
+export interface MicroCommitment {
+  id: string;
+  createdAt: string;
+  startDate: string;
+  targetEndDate: string; // 14 hari
+  schoolName: string;
+  level: 'SD' | 'SMP';
+  teacherName: string;
+  className: string;
+  subject: string;
+  targetObstacle: 'Linguistik (Pemahaman Teks)' | 'Transformasi Skematis (Model)' | 'Komputasi Teknis' | 'Kombinasi Nalar';
+  strategyTitle: string;
+  commitmentText: string;
+  observableSuccessIndicator: string;
+  supervisorNudge?: {
+    day3Check: boolean;
+    day7Check: boolean;
+    day14Check: boolean;
+    notes?: string;
+  };
+  daysProgress: { [day: number]: boolean }; // 1 s.d. 14
+  status: 'Aktif Berjalan' | 'Review Hari Ke-7' | 'Tuntas Berdampak' | 'Perlu Penyesuaian';
+  teacherReflectionNote?: string;
+  supervisorFeedback?: string;
+}
+
 export interface BackupPackage {
   version: string;
   appName: string;
@@ -230,6 +256,7 @@ export interface BackupPackage {
     docPhotos: DocPhoto[];
     observedProblems: number[];
     impactData: ImpactData;
+    microCommitments?: MicroCommitment[];
   };
 }
 

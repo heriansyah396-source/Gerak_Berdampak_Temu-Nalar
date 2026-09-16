@@ -11,6 +11,7 @@ import {
   GerakRecord,
   SchoolProgressItem,
   OfficialSchoolItem,
+  MicroCommitment,
 } from '../types';
 
 export const APP_INFO = {
@@ -308,44 +309,45 @@ export const GERAK_STAGES: GerakStage[] = [
     letter: 'G',
     title: 'Gali Masalah Berbasis Data',
     description:
-      'Melakukan observasi kelas, analisis hasil belajar, dan dialog dengan kepala sekolah untuk menemukan masalah nyata pembelajaran.',
+      'Melacak jejak alur nalar (thought tracing) melalui bedah artefak lembar kerja siswa, observasi kelas, dan telaah diagnostik untuk memetakan hambatan nalar nyata tanpa terjebak ceklis administratif.',
     evidenceExamples: [
-      'Hasil asesmen awal/diagnostik literasi dan numerasi siswa',
-      'Lembar jawaban siswa pada soal cerita kontekstual',
-      'Instrumen catatan observasi pembelajaran guru di kelas',
-      'Catatan harian guru mengenai kendala siswa saat bernalar',
-      'Hasil diskusi terfokus dengan Kepala Sekolah binaan',
+      'Artefak lembar kerja/cakar-cakar siswa pada soal cerita kontekstual Tellu Limpoe',
+      'Matriks diagnosis 3 hambatan nalar (Linguistik, Transformasi Skematis, Komputasi)',
+      'Hasil asesmen awal/diagnostik literasi dan numerasi siswa SD & SMP',
+      'Instrumen catatan observasi interaksi dialog guru dan murid di kelas',
+      'Catatan harian guru mengenai kebiasaan siswa saat membaca instruksi soal',
     ],
     guidingQuestions: [
-      'Fakta apa yang paling sering muncul dari lembar jawaban siswa pada soal cerita?',
-      'Apakah siswa kesulitan pada kalkulasi angka atau pada saat mengartikan kalimat soal?',
-      'Bagaimana pola interaksi guru saat membimbing siswa membaca teks soal?',
+      'Berdasarkan coretan pensil siswa di lembar kerja, di langkah mana alur nalar mereka mulai terputus?',
+      'Apakah siswa gagal karena tidak memahami kalimat soal cerita atau karena salah rumus hitung?',
+      'Apakah siswa terbiasa membuat sketsa visual/garis bawah penanda sebelum mulai menghitung?',
     ],
     keyActions: [
-      'Menganalisis 10-15 sampel lembar kerja siswa acak di SD/SMP binaan',
-      'Mengelompokkan tipe kesalahan (salah baca, salah paham tanya, atau salah hitung)',
-      'Menyusun profil awal mutu nalar literasi-numerasi kelas dampingan',
+      'Mengambil 5-10 sampel representatif artefak lembar kerja siswa acak di SD/SMP binaan',
+      'Membedah tipe kesalahan menggunakan Matriks 3 Hambatan Nalar (Linguistik, Skematis, Komputasi)',
+      'Menyusun profil klinis mutu nalar literasi-numerasi sebagai bahan dialog refleksi kemitraan',
     ],
   },
   {
     letter: 'E',
     title: 'Evaluasi dan Refleksi Bersama',
     description:
-      'Memfasilitasi diskusi reflektif dengan kepala sekolah dan guru berbasis data tanpa menyalahkan, guna menumbuhkan kesadaran perbaikan.',
+      'Memfasilitasi dialog kemitraan setara (Non-Judgmental Clinical Inquiry) bersama Kepala Sekolah dan Guru dengan meletakkan artefak siswa di meja diskusi untuk menumbuhkan kesadaran perbaikan mandiri.',
     evidenceExamples: [
-      'Notula dialog coaching supervisi akademik',
-      'Lembar refleksi diri guru tentang kebiasaan mengajar',
-      'Peta identifikasi kekuatan dan area pembenahan guru',
+      'Notula dialog coaching supervisi akademik berbasis protokol O-R-I-D',
+      'Artefak kerja siswa yang dijadikan cermin reflektif bersama di meja diskusi',
+      'Lembar refleksi diri guru tentang kebiasaan mengajar tanpa rasa dihakimi',
+      'Peta identifikasi kekuatan mengajar dan area kesepakatan pembenahan kelas',
     ],
     guidingQuestions: [
-      'Apa praktik baik yang sudah berjalan efektif di kelas Ibu/Bapak?',
-      'Pada bagian mana siswa tampak paling bingung saat menghadapi soal bertingkat?',
-      'Bagaimana perasaan guru saat melihat siswa terburu-buru menghitung sebelum paham?',
+      'Mari amati coretan Ananda ini bersama: kira-kira apa yang dipikirkan siswa saat memilih langkah ini?',
+      'Bagian instruksi mana dari pembelajaran kita yang perlu diberi jeda agar siswa tidak tergesa-gesa menghitung?',
+      'Praktik baik apa yang sudah mulai berhasil memancing keberanian siswa untuk berargumen?',
     ],
     keyActions: [
-      'Menghadirkan bukti kerja siswa secara ramah dan profesional di meja diskusi',
-      'Mengajukan pertanyaan pemantik apresiatif (Appreciative Inquiry)',
-      'Menyepakati fokus prioritas pembenahan tanpa tekanan administratif',
+      'Menghadirkan artefak coretan siswa secara ramah dan profesional di tengah meja diskusi',
+      'Menerapkan protokol dialog O-R-I-D (Objektif, Reflektif, Interpretatif, Desisional)',
+      'Menyepakati fokus 1 strategi perbaikan nalar kelas tanpa beban administratif dan tanpa menyalahkan guru',
     ],
   },
   {
@@ -1331,6 +1333,143 @@ export const INITIAL_SCHOOL_PROGRESS: SchoolProgressItem[] = [
     },
     notes:
       'Siswa kelas VIII mampu berargumen logis dalam menentukan solusi numerasi berbasis data lingkungan.',
+  },
+];
+
+export const INITIAL_MICRO_COMMITMENTS: MicroCommitment[] = [
+  {
+    id: 'commit-tellu-1',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    startDate: '2026-09-02',
+    targetEndDate: '2026-09-16',
+    schoolName: 'UPT SD NEGERI 4 TELLU LIMPOE',
+    level: 'SD',
+    teacherName: 'Siti Nurhalizah, S.Pd.',
+    className: 'Kelas V (Fase C)',
+    subject: 'Matematika & Tematik',
+    targetObstacle: 'Linguistik (Pemahaman Teks)',
+    strategyTitle: 'Strategi 1 — Baca, Tandai, Tanya (Stabilo Kata Kunci)',
+    commitmentText:
+      'Dalam 14 hari ke depan, setiap kali memulai pembahasan soal cerita numerasi, saya berkomitmen memberikan jeda 3 menit bagi siswa untuk menggunakan stabilo/spidol warna menandai informasi yang diketahui dan kalimat tanya sebelum siswa diperbolehkan memegang pensil hitung.',
+    observableSuccessIndicator:
+      'Minimal 85% siswa pada buku latihan tugasnya memiliki jejak stabilo pembeda antara data fakta dan kalimat tanya, serta tidak ada siswa yang langsung menjumlahkan angka secara terburu-buru.',
+    supervisorNudge: {
+      day3Check: true,
+      day7Check: true,
+      day14Check: false,
+      notes:
+        'Sapaan Pengawas (Hari ke-7): Luar biasa, Bu Siti melaporkan antusiasme siswa meningkat saat berebut menjelaskan fungsi warna stabilo di mejanya.',
+    },
+    daysProgress: {
+      1: true,
+      2: true,
+      3: true,
+      4: true,
+      5: true,
+      6: true,
+      7: true,
+      8: true,
+      9: false,
+      10: false,
+      11: false,
+      12: false,
+      13: false,
+      14: false,
+    },
+    status: 'Aktif Berjalan',
+    teacherReflectionNote:
+      'Anak-anak yang biasanya malas membaca teks panjang sekarang lebih tenang karena merasa sedang bermain peran detektif mencari kata kunci.',
+    supervisorFeedback:
+      'Pertahankan jeda 3 menit ini sebagai SOP awal di setiap sesi soal cerita. Pengawas akan mendampingi lagi saat review akhir hari ke-14.',
+  },
+  {
+    id: 'commit-tellu-2',
+    createdAt: '2026-08-15T08:00:00.000Z',
+    startDate: '2026-08-16',
+    targetEndDate: '2026-08-30',
+    schoolName: 'UPT SMP NEGERI 1 TELLU LIMPOE',
+    level: 'SMP',
+    teacherName: 'Drs. Muhammad Arsyad',
+    className: 'Kelas VII (Fase D)',
+    subject: 'Matematika',
+    targetObstacle: 'Transformasi Skematis (Model)',
+    strategyTitle: 'Strategi 2 — Sketsa Sederhana & Diagram Model (Bar Model)',
+    commitmentText:
+      'Dalam 14 hari ke depan, saya mewajibkan siswa membuat sketsa visual berupa diagram kotak (bar-model) atau garis alur proporsional di sisi kiri buku sebelum merumuskan persamaan matematika aljabar/rasio.',
+    observableSuccessIndicator:
+      'Seluruh lembar kerja siswa memuat sketsa visual penalarannya, dan saat presentasi siswa menunjuk kotak diagram untuk menjelaskan dari mana rumus hitungnya berasal.',
+    supervisorNudge: {
+      day3Check: true,
+      day7Check: true,
+      day14Check: true,
+      notes:
+        'Kunjungan Walkthrough 15 Menit Pengawas (Hari ke-14): Transformasi kelas sangat nyata, siswa SMPN 1 Tellu Limpoe fasih menggunakan sketsa model kincir angin PLTB Sidrap.',
+    },
+    daysProgress: {
+      1: true,
+      2: true,
+      3: true,
+      4: true,
+      5: true,
+      6: true,
+      7: true,
+      8: true,
+      9: true,
+      10: true,
+      11: true,
+      12: true,
+      13: true,
+      14: true,
+    },
+    status: 'Tuntas Berdampak',
+    teacherReflectionNote:
+      'Dulu siswa saya anggap tidak bisa aljabar, ternyata masalahnya mereka tidak bisa membayangkan besaran angka abstrak. Diagram kotak menjembatani itu semua.',
+    supervisorFeedback:
+      'Praktik baik Pak Arsyad layak diimbaskan pada forum MGMP Matematika SMP se-Kecamatan Tellu Limpoe!',
+  },
+  {
+    id: 'commit-tellu-3',
+    createdAt: '2026-09-08T08:00:00.000Z',
+    startDate: '2026-09-09',
+    targetEndDate: '2026-09-23',
+    schoolName: 'UPT SD NEGERI 1 AMPARITA',
+    level: 'SD',
+    teacherName: 'Siti Rahmawati, S.Pd.',
+    className: 'Kelas IV (Fase B)',
+    subject: 'Tematik & Matematika',
+    targetObstacle: 'Kombinasi Nalar',
+    strategyTitle: 'Strategi 5 — Jelaskan Jawabanmu (Alur Nalar Bertutur)',
+    commitmentText:
+      'Dalam 14 hari ke depan, saya berkomitmen menahan diri untuk tidak langsung menilai jawaban benar/salah, melainkan selalu mengajukan pertanyaan pemantik: "Mengapa kamu memilih operasi hitung itu?" dan meminta siswa menuliskan 1 kalimat alasan di bawah cakarannya.',
+    observableSuccessIndicator:
+      'Siswa tidak lagi takut salah dan minimal 70% siswa aktif berargumen logis saat sesi pembahasan jawaban soal cerita panen padi.',
+    supervisorNudge: {
+      day3Check: true,
+      day7Check: false,
+      day14Check: false,
+      notes: 'Sapaan WhatsApp Pengawas: Menanyakan respons siswa pada hari ke-3.',
+    },
+    daysProgress: {
+      1: true,
+      2: true,
+      3: true,
+      4: true,
+      5: true,
+      6: false,
+      7: false,
+      8: false,
+      9: false,
+      10: false,
+      11: false,
+      12: false,
+      13: false,
+      14: false,
+    },
+    status: 'Aktif Berjalan',
+    teacherReflectionNote:
+      'Suasana kelas menjadi jauh lebih hidup, anak-anak mulai berani membantah dan mengoreksi langkah temannya secara sopan.',
+    supervisorFeedback:
+      'Pola komunikasi apresiatif guru sudah sangat baik. Terus lanjutkan hingga hari ke-14.',
   },
 ];
 
