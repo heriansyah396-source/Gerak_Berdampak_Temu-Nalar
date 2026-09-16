@@ -16,6 +16,7 @@ import {
   UserCheck,
   CheckCircle,
   ExternalLink,
+  Database,
 } from 'lucide-react';
 import { NavTab } from '../types';
 import { APP_INFO } from '../data/appData';
@@ -25,6 +26,7 @@ interface SidebarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   onOpenPrintModal: () => void;
+  onOpenBackupModal?: () => void;
   onResetData?: () => void;
 }
 
@@ -32,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   onOpenPrintModal,
+  onOpenBackupModal,
   onResetData,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -159,6 +162,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Printer className="w-4 h-4" />
           <span>Cetak Dokumen Supervisi</span>
         </button>
+
+        {onOpenBackupModal && (
+          <button
+            id="sidebar-backup-btn"
+            onClick={onOpenBackupModal}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition active:scale-[0.98]"
+            title="Cadangkan (Backup) atau Pulihkan (Restore) data JSON aplikasi"
+          >
+            <Database className="w-3.5 h-3.5 text-blue-400" />
+            <span>Cadangkan & Pulihkan Data</span>
+          </button>
+        )}
 
         {!showResetConfirm ? (
           <button

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   HelpCircle,
   School,
+  Database,
 } from 'lucide-react';
 import { NavTab } from '../types';
 
@@ -14,6 +15,7 @@ interface HeaderProps {
   onOpenMobileNav: () => void;
   onOpenPrintModal: () => void;
   onOpenHelpModal: () => void;
+  onOpenBackupModal?: () => void;
 }
 
 const TAB_TITLES: Record<NavTab, { title: string; subtitle: string; step: string }> = {
@@ -69,6 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileNav,
   onOpenPrintModal,
   onOpenHelpModal,
+  onOpenBackupModal,
 }) => {
   const currentInfo = TAB_TITLES[currentTab] || {
     step: 'Tahap 1',
@@ -121,6 +124,18 @@ export const Header: React.FC<HeaderProps> = ({
           <HelpCircle className="w-4 h-4 text-blue-600" />
           <span className="hidden sm:inline">Panduan</span>
         </button>
+
+        {onOpenBackupModal && (
+          <button
+            onClick={onOpenBackupModal}
+            id="btn-header-backup"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 text-xs font-semibold transition shadow-2xs"
+            title="Cadangkan (Backup) atau Pulihkan (Restore) data JSON"
+          >
+            <Database className="w-3.5 h-3.5 text-blue-500" />
+            <span className="hidden md:inline">Cadangan Data</span>
+          </button>
+        )}
 
         <button
           onClick={onOpenPrintModal}

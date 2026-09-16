@@ -13,6 +13,7 @@ import {
   Sparkles,
   School,
   UserCheck,
+  Database,
 } from 'lucide-react';
 import { NavTab } from '../types';
 import { APP_INFO } from '../data/appData';
@@ -23,6 +24,7 @@ interface MobileNavProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   onOpenPrintModal: () => void;
+  onOpenBackupModal?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -31,6 +33,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   currentTab,
   onSelectTab,
   onOpenPrintModal,
+  onOpenBackupModal,
 }) => {
   React.useEffect(() => {
     if (!isOpen) return;
@@ -120,7 +123,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           })}
         </div>
 
-        <div className="p-3 border-t border-slate-800 bg-slate-950/60">
+        <div className="p-3 border-t border-slate-800 bg-slate-950/60 space-y-2">
           <button
             onClick={() => {
               onOpenPrintModal();
@@ -130,6 +133,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           >
             Cetak Dokumen Supervisi
           </button>
+
+          {onOpenBackupModal && (
+            <button
+              onClick={() => {
+                onOpenBackupModal();
+                onClose();
+              }}
+              className="w-full py-2 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition"
+            >
+              <Database className="w-3.5 h-3.5 text-blue-400" />
+              <span>Cadangkan & Pulihkan Data</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

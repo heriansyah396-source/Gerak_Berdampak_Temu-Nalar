@@ -14,6 +14,7 @@ import { RtlView } from './components/RtlView';
 import { ImpactDashboardView } from './components/ImpactDashboardView';
 import { PrintModal } from './components/PrintModal';
 import { HelpModal } from './components/HelpModal';
+import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { initializeStorage } from './utils/storage';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [printTargetSchool, setPrintTargetSchool] = useState<string>('');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
 
   const handleOpenPrintModal = (schoolName?: unknown) => {
     if (typeof schoolName === 'string' && schoolName.trim() !== '') {
@@ -59,6 +61,7 @@ export default function App() {
         currentTab={currentTab}
         onSelectTab={handleNavigate}
         onOpenPrintModal={handleOpenPrintModal}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
         onResetData={() => window.location.reload()}
       />
 
@@ -70,6 +73,7 @@ export default function App() {
           onOpenMobileNav={() => setIsMobileNavOpen(true)}
           onOpenPrintModal={handleOpenPrintModal}
           onOpenHelpModal={() => setIsHelpModalOpen(true)}
+          onOpenBackupModal={() => setIsBackupModalOpen(true)}
         />
 
         {/* Dynamic Page Views */}
@@ -129,6 +133,7 @@ export default function App() {
         currentTab={currentTab}
         onSelectTab={handleNavigate}
         onOpenPrintModal={handleOpenPrintModal}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
       />
 
       {/* Print Document Modal */}
@@ -136,6 +141,13 @@ export default function App() {
         isOpen={isPrintModalOpen}
         onClose={handleClosePrintModal}
         defaultSchool={printTargetSchool}
+      />
+
+      {/* Backup & Restore Data Modal */}
+      <BackupRestoreModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        onDataChanged={() => window.location.reload()}
       />
 
       {/* Help Modal */}
