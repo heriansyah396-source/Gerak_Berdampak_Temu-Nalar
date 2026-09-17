@@ -7,6 +7,7 @@ import {
   DocPhoto,
   BackupPackage,
   MicroCommitment,
+  LabQuestion,
 } from '../types';
 import {
   INITIAL_ACTION_PLANS,
@@ -27,6 +28,7 @@ const KEYS = {
   SCHOOL_PROGRESS: 'gerak_berdampak_school_progress',
   DOC_PHOTOS: 'gerak_berdampak_doc_photos',
   MICRO_COMMITMENTS: 'gerak_berdampak_micro_commitments',
+  CUSTOM_QUESTIONS: 'gerak_berdampak_custom_questions',
 };
 
 export const INITIAL_DOC_PHOTOS: DocPhoto[] = [
@@ -344,6 +346,34 @@ export const toggleCommitmentDay = (id: string, day: number): MicroCommitment[] 
     };
   });
   localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  return updated;
+};
+
+export const getCustomQuestions = (): LabQuestion[] => {
+  try {
+    const data = localStorage.getItem(KEYS.CUSTOM_QUESTIONS);
+    if (!data) return [];
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('Failed to read custom questions', e);
+    return [];
+  }
+};
+
+export const saveCustomQuestion = (item: LabQuestion): LabQuestion[] => {
+  const current = getCustomQuestions();
+  const exists = current.some((q) => q.id === item.id);
+  const updated = exists
+    ? current.map((q) => (q.id === item.id ? item : q))
+    : [item, ...current];
+  localStorage.setItem(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  return updated;
+};
+
+export const deleteCustomQuestion = (id: string): LabQuestion[] => {
+  const current = getCustomQuestions();
+  const updated = current.filter((q) => q.id !== id);
+  localStorage.setItem(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
   return updated;
 };
 

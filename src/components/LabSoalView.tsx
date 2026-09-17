@@ -18,6 +18,8 @@ import {
 import { LabQuestion, QuestionOption, NavTab } from '../types';
 import { LAB_QUESTIONS } from '../data/appData';
 import { StagePagination } from './StagePagination';
+import { StudioSoalLokal } from './StudioSoalLokal';
+import { getCustomQuestions } from '../utils/storage';
 
 interface LabSoalViewProps {
   onNavigate: (tab: NavTab) => void;
@@ -25,9 +27,16 @@ interface LabSoalViewProps {
 
 export const LabSoalView: React.FC<LabSoalViewProps> = ({ onNavigate }) => {
   const [activeLevel, setActiveLevel] = useState<'SD' | 'SMP'>('SD');
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
-    LAB_QUESTIONS.find((q) => q.level === 'SD')?.id || LAB_QUESTIONS[0].id
-  );
+  const [customQuestions, setCustomQuestions] = useState<LabQuestion[]>(() => getCustomQuestions());
+  const [activeSubTab, setActiveSubTab] = useState<'praktik' | 'studio'>('praktik');
+
+  const allQuestions = [...LAB_QUESTIONS, ...customQuestions];
+  const filteredQuestions = allQuestions.filter((q) => q.level === activeLevel);
+
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(() => {
+    const defaultQ = LAB_QUESTIONS.find((q) => q.level === 'SD');
+    return defaultQ ? defaultQ.id : LAB_QUESTIONS[0].id;
+  });
   const [appMode, setAppMode] = useState<'siswa' | 'guru'>('siswa');
 
   // Interactive reveal states
@@ -53,21 +62,29 @@ export const LabSoalView: React.FC<LabSoalViewProps> = ({ onNavigate }) => {
     total: 0,
   });
 
-  const filteredQuestions = LAB_QUESTIONS.filter((q) => q.level === activeLevel);
   const currentQuestion =
-    LAB_QUESTIONS.find((q) => q.id === selectedQuestionId) || filteredQuestions[0];
+    allQuestions.find((q) => q.id === selectedQuestionId) || filteredQuestions[0] || allQuestions[0];
 
   const handleLevelChange = (lvl: 'SD' | 'SMP') => {
     setActiveLevel(lvl);
-    const firstQ = LAB_QUESTIONS.find((q) => q.level === lvl);
-    if (firstQ) {
-      setSelectedQuestionId(firstQ.id);
+    const matching = allQuestions.find((q) => q.level === lvl);
+    if (matching) {
+      setSelectedQuestionId(matching.id);
       resetQuestionState();
     }
   };
 
   const handleSelectQuestion = (id: string) => {
     setSelectedQuestionId(id);
+    resetQuestionState();
+  };
+
+  const handleQuestionCreated = (newQ: LabQuestion) => {
+    const updated = getCustomQuestions();
+    setCustomQuestions(updated);
+    setActiveLevel(newQ.level);
+    setSelectedQuestionId(newQ.id);
+    setActiveSubTab('praktik');
     resetQuestionState();
   };
 
@@ -159,57 +176,136 @@ export const LabSoalView: React.FC<LabSoalViewProps> = ({ onNavigate }) => {
           numerasi (memilih kalkulasi yang tepat) melalui soal cerita kontekstual bertingkat.
         </p>
 
-        {/* Level Filters & Question Pills */}
-        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Pilih Jenjang:</span>
-            {(['SD', 'SMP'] as const).map((lvl) => (
-              <button
-                key={lvl}
-                id={`btn-lab-level-${lvl}`}
-                onClick={() => handleLevelChange(lvl)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition ${
-                  activeLevel === lvl
-                    ? 'bg-blue-900 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Jenjang {lvl}
-              </button>
-            ))}
+        {/* Sub-view Switcher: Meja Uji vs Studio Soal Lokal */}
+        <div className="pt-3 pb-1 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
+          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+            <button
+              onClick={() => setActiveSubTab('praktik')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                activeSubTab === 'praktik'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span>Meja Uji Soal Cerita ({filteredQuestions.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab('studio')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition ${
+                activeSubTab === 'studio'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Studio Penyusun Soal Lokal (Tellu Limpoe)</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950 uppercase">
+                Baru
+              </span>
+            </button>
           </div>
 
-          {appMode === 'siswa' && scoreTracker.total > 0 && (
-            <div className="text-xs font-bold text-slate-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>
-                Skor Latihan: {scoreTracker.correct} Benar dari {scoreTracker.total} Percobaan (
-                {Math.round((scoreTracker.correct / scoreTracker.total) * 100)}%)
-              </span>
+          {activeSubTab === 'praktik' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Pilih Jenjang:</span>
+              {(['SD', 'SMP'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  id={`btn-lab-level-${lvl}`}
+                  onClick={() => handleLevelChange(lvl)}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-bold transition ${
+                    activeLevel === lvl
+                      ? 'bg-blue-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Jenjang {lvl}
+                </button>
+              ))}
             </div>
           )}
         </div>
+
+        {activeSubTab === 'praktik' && appMode === 'siswa' && scoreTracker.total > 0 && (
+          <div className="text-xs font-bold text-slate-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 w-fit">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>
+              Skor Latihan: {scoreTracker.correct} Benar dari {scoreTracker.total} Percobaan (
+              {Math.round((scoreTracker.correct / scoreTracker.total) * 100)}%)
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Question Selector Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {filteredQuestions.map((q, idx) => {
-          const isSelected = q.id === selectedQuestionId;
-          return (
+      {/* RENDER STUDIO PENYUSUN SOAL LOKAL JIKA AKTIF */}
+      {activeSubTab === 'studio' ? (
+        <StudioSoalLokal
+          onQuestionCreated={handleQuestionCreated}
+          onClose={() => setActiveSubTab('praktik')}
+        />
+      ) : (
+        <>
+          {/* Quick Banner to Studio Soal Lokal */}
+          <div className="p-4 rounded-2xl bg-linear-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Sparkles className="w-5 h-5 text-amber-300" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                  Penyusun Soal Kontekstual Lokal Tellu Limpoe
+                </div>
+                <div className="text-[11px] sm:text-xs text-slate-600">
+                  Gunakan 4 kearifan lokal (Panen Padi Baula, PLTB Mattirotasi, Telur Asin & Pasar Amparita) untuk menyusun LKPD Temu Nalar.
+                </div>
+              </div>
+            </div>
             <button
-              key={q.id}
-              onClick={() => handleSelectQuestion(q.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition border text-left ${
-                isSelected
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/30'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-              }`}
+              onClick={() => setActiveSubTab('studio')}
+              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto shadow-xs"
             >
-              Soal {idx + 1}: {q.topic}
+              <span>Buka Studio Soal Lokal →</span>
             </button>
-          );
-        })}
-      </div>
+          </div>
+
+          {/* Question Selector Tabs */}
+          <div className="flex flex-wrap gap-2">
+            {filteredQuestions.map((q, idx) => {
+              const isSelected = q.id === selectedQuestionId;
+              const isLocalCustom =
+                q.id.startsWith('soal-lokal') ||
+                q.id.startsWith('preset-') ||
+                q.contextTag.includes('Tellu Limpoe') ||
+                q.contextTag.includes('Sidrap') ||
+                q.contextTag.includes('Amparita') ||
+                q.contextTag.includes('Baula') ||
+                q.contextTag.includes('Mattirotasi');
+
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => handleSelectQuestion(q.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition border text-left flex items-center gap-2 ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/30'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span>Soal {idx + 1}: {q.topic}</span>
+                  {isLocalCustom && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        isSelected ? 'bg-amber-400 text-amber-950' : 'bg-emerald-100 text-emerald-800'
+                      }`}
+                    >
+                      Konteks Lokal
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
       {/* Mode Guru Notification Banner */}
       {appMode === 'guru' && (
@@ -564,6 +660,8 @@ export const LabSoalView: React.FC<LabSoalViewProps> = ({ onNavigate }) => {
           </div>
         )}
       </div>
+      </>
+      )}
 
       <StagePagination
         prevTab="siklus-berdampak"
