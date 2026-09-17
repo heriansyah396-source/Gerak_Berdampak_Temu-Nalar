@@ -13,6 +13,7 @@ import {
   User,
   Calendar,
   Printer,
+  Edit3,
 } from 'lucide-react';
 import { ActionPlanItem, NavTab } from '../types';
 import {
@@ -23,6 +24,68 @@ import {
 import { getActionPlans, saveActionPlan, deleteActionPlan } from '../utils/storage';
 import { StagePagination } from './StagePagination';
 
+// Helper konversi format tanggal untuk input type="date"
+const parseToInputDate = (dateStr?: string): string => {
+  if (!dateStr) return new Date().toISOString().slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  const months: Record<string, string> = {
+    jan: '01', januari: '01',
+    feb: '02', februari: '02',
+    mar: '03', maret: '03',
+    apr: '04', april: '04',
+    mei: '05',
+    jun: '06', juni: '06',
+    jul: '07', juli: '07',
+    agu: '08', agust: '08', agustus: '08',
+    sep: '09', september: '09',
+    okt: '10', oktober: '10',
+    nov: '11', november: '11',
+    des: '12', desember: '12',
+  };
+
+  const parts = dateStr.trim().split(/[\s-]+/);
+  if (parts.length >= 3) {
+    const day = parts[0].padStart(2, '0');
+    const monthKey = parts[1].toLowerCase().replace('.', '');
+    const month = months[monthKey] || '01';
+    let year = parts[2];
+    if (year.length === 2) year = `20${year}`;
+    if (year.length === 4) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed)) {
+    return new Date(parsed).toISOString().slice(0, 10);
+  }
+
+  return new Date().toISOString().slice(0, 10);
+};
+
+// Helper format tanggal ke Bahasa Indonesia resmi (contoh: 17 September 2026)
+const formatIndonesianDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
+    return dateStr;
+  } catch {
+    return dateStr;
+  }
+};
+
 interface RtlViewProps {
   onNavigate: (tab: NavTab) => void;
   onOpenPrintModal: (schoolName?: string) => void;
@@ -31,11 +94,13 @@ interface RtlViewProps {
 export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }) => {
   const [plans, setPlans] = useState<ActionPlanItem[]>(getActionPlans());
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
   // Form states
   const [schoolName, setSchoolName] = useState<string>(SCHOOL_LIST_TELLU_LIMPOE[0]);
   const [teacherName, setTeacherName] = useState<string>('');
   const [level, setLevel] = useState<'SD' | 'SMP'>('SD');
+  const [agreementDate, setAgreementDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [mainProblem, setMainProblem] = useState<string>(
     'Siswa belum mampu menentukan informasi penting dalam soal cerita dan langsung menghitung.'
   );
@@ -56,16 +121,47 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
 
   const [formSuccess, setFormSuccess] = useState<boolean>(false);
 
+  const resetFormFields = () => {
+    setEditingPlanId(null);
+    setTeacherName('');
+    setAgreementDate(new Date().toISOString().slice(0, 10));
+  };
+
+  const handleStartEdit = (plan: ActionPlanItem) => {
+    setEditingPlanId(plan.id);
+    setSchoolName(plan.schoolName);
+    setTeacherName(plan.teacherName);
+    setLevel(plan.level);
+    setAgreementDate(parseToInputDate(plan.createdAt));
+    setMainProblem(plan.mainProblem);
+    setImprovementGoal(plan.improvementGoal);
+    setSelectedStrategy(plan.selectedStrategy);
+    setExecutionTime(plan.executionTime);
+    setSuccessEvidence(plan.successEvidence);
+    setFollowUp(plan.followUp);
+    setStatus(plan.status);
+    setShowForm(true);
+
+    setTimeout(() => {
+      const el = document.getElementById('form-rtl-card');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
+  };
+
   const handleCreatePlan = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newPlan: ActionPlanItem = {
-      id: `rtl-${Date.now()}`,
-      createdAt: new Date().toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
+    const formattedDate = formatIndonesianDate(agreementDate) || new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const planData: ActionPlanItem = {
+      id: editingPlanId || `rtl-${Date.now()}`,
+      createdAt: formattedDate,
       schoolName,
       teacherName: teacherName.trim() || 'Guru Binaan Tellu Limpoe',
       level,
@@ -78,13 +174,13 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
       status,
     };
 
-    const updated = saveActionPlan(newPlan);
+    const updated = saveActionPlan(planData);
     setPlans(updated);
     setFormSuccess(true);
     setTimeout(() => {
       setFormSuccess(false);
       setShowForm(false);
-      setTeacherName('');
+      resetFormFields();
     }, 1200);
   };
 
@@ -156,12 +252,15 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
                 Formulir Rencana Tindak Lanjut
               </span>
               <h3 className="text-xl sm:text-2xl font-bold">
-                Susun Kesepakatan Aksi Perbaikan Kelas
+                {editingPlanId ? 'Edit Kesepakatan Aksi Perbaikan Kelas' : 'Susun Kesepakatan Aksi Perbaikan Kelas'}
               </h3>
             </div>
             <button
-              onClick={() => setShowForm(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg"
+              onClick={() => {
+                setShowForm(false);
+                resetFormFields();
+              }}
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 transition cursor-pointer"
             >
               Tutup
             </button>
@@ -171,7 +270,7 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
             <div className="p-6 rounded-2xl bg-emerald-600/30 border border-emerald-500 text-center space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <div className="text-base font-bold text-emerald-200">
-                Rencana Tindakan Berhasil Dibuat!
+                {editingPlanId ? 'Perubahan Kesepakatan Berhasil Disimpan!' : 'Rencana Tindakan Berhasil Dibuat!'}
               </div>
               <p className="text-xs text-emerald-300">
                 Data telah tersimpan rapi dalam kartu RTL dan siap dicetak.
@@ -179,7 +278,7 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
             </div>
           ) : (
             <form onSubmit={handleCreatePlan} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Sekolah */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -254,6 +353,37 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
                         {l}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Tanggal Kesepakatan (TAMBAHKAN TANGGAL) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tanggal Kesepakatan</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
+                      Wajib
+                    </span>
+                  </div>
+                  <input
+                    type="date"
+                    required
+                    id="input-tanggal-kesepakatan"
+                    value={agreementDate}
+                    onChange={(e) => setAgreementDate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
+                    <span>Terpilih: <strong className="text-slate-200">{formatIndonesianDate(agreementDate)}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => setAgreementDate(new Date().toISOString().slice(0, 10))}
+                      className="text-emerald-400 hover:text-emerald-300 hover:underline text-[10px]"
+                    >
+                      Hari Ini
+                    </button>
                   </div>
                 </div>
               </div>
@@ -354,17 +484,21 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                  onClick={() => {
+                    setShowForm(false);
+                    resetFormFields();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   id="btn-buat-rencana-tindakan"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
                 >
-                  Buat Rencana Tindakan
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{editingPlanId ? 'Simpan Perubahan Kesepakatan' : 'Buat Rencana Tindakan'}</span>
                 </button>
               </div>
             </form>
@@ -407,8 +541,8 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
                           <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
                             Jenjang {p.level}
                           </span>
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
+                          <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-400" />
                             {p.createdAt}
                           </span>
                         </div>
@@ -419,6 +553,13 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleStartEdit(p)}
+                          className="p-1.5 rounded-lg text-blue-700 hover:text-blue-800 hover:bg-blue-50 transition border border-blue-200 cursor-pointer"
+                          title={`Edit Kesepakatan & Tanggal (${p.schoolName})`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => onOpenPrintModal(p.schoolName)}
                           className="p-1.5 rounded-lg text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 transition border border-emerald-200 cursor-pointer"
