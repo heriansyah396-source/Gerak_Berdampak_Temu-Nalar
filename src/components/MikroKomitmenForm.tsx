@@ -22,6 +22,7 @@ import {
   Copy,
   Info,
   X,
+  Pencil,
 } from 'lucide-react';
 import { MicroCommitment } from '../types';
 import { OFFICIAL_SCHOOLS_TELLU_LIMPOE } from '../data/appData';
@@ -81,6 +82,7 @@ export const MikroKomitmenForm: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [printCommitment, setPrintCommitment] = useState<MicroCommitment | null>(null);
+  const [editingCommitment, setEditingCommitment] = useState<MicroCommitment | null>(null);
   const [successBanner, setSuccessBanner] = useState<{
     teacherName: string;
     schoolName: string;
@@ -106,6 +108,41 @@ export const MikroKomitmenForm: React.FC = () => {
       window.removeEventListener('app_storage_updated', handleStorageUpdate);
     };
   }, []);
+
+  // Handle ESC key for modals
+  useEffect(() => {
+    if (!editingCommitment && !printCommitment) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setEditingCommitment(null);
+        setPrintCommitment(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingCommitment, printCommitment]);
+
+  const handleStartEdit = (commitment: MicroCommitment) => {
+    setEditingCommitment({ ...commitment });
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCommitment) return;
+    if (!editingCommitment.teacherName.trim() || !editingCommitment.commitmentText.trim()) {
+      alert('Mohon lengkapi nama guru dan teks mikro-komitmen.');
+      return;
+    }
+
+    const updated = saveMicroCommitment(editingCommitment);
+    setCommitments(updated);
+    setSuccessBanner({
+      teacherName: editingCommitment.teacherName,
+      schoolName: editingCommitment.schoolName,
+      strategyTitle: editingCommitment.strategyTitle,
+    });
+    setEditingCommitment(null);
+  };
 
   // Form State
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -456,8 +493,17 @@ export const MikroKomitmenForm: React.FC = () => {
                         </h4>
                       </div>
 
-                      {/* Status Badge */}
+                      {/* Status Badge & Quick Edit */}
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleStartEdit(c)}
+                          className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-bold transition flex items-center gap-1 border border-slate-200 cursor-pointer shadow-2xs"
+                          title="Edit komitmen guru ini"
+                        >
+                          <Pencil className="w-3 h-3 text-blue-600" />
+                          <span>Edit</span>
+                        </button>
+
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
                             isFinished
@@ -597,10 +643,10 @@ export const MikroKomitmenForm: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleCopyWhatsapp(c)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs"
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                           <span>Kirim Pengingat WhatsApp</span>
@@ -613,20 +659,38 @@ export const MikroKomitmenForm: React.FC = () => {
 
                         <button
                           onClick={() => setPrintCommitment(c)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold hover:bg-slate-200 transition flex items-center gap-1.5 border border-slate-300"
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold hover:bg-slate-200 transition flex items-center gap-1.5 border border-slate-300 cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>Cetak Lembar Komitmen</span>
                         </button>
+
+                        <button
+                          onClick={() => handleStartEdit(c)}
+                          className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                          title="Edit formulir komitmen ini"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Edit Komitmen</span>
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() => handleDelete(c.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 transition"
-                        title="Hapus komitmen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleStartEdit(c)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                          title="Edit komitmen"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          title="Hapus komitmen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -914,6 +978,352 @@ export const MikroKomitmenForm: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT MIKRO-KOMITMEN */}
+      {editingCommitment && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-8 space-y-6 shadow-2xl my-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shadow-xs shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                    Edit Mikro-Komitmen 14 Hari
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Perbarui rumusan komitmen, guru sasaran, atau catatan pendampingan tanpa mereset progres harian.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCommitment(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleSaveEdit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Row 1: Sekolah & Guru */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Satuan Pendidikan</label>
+                  <select
+                    value={editingCommitment.schoolName}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const matched = OFFICIAL_SCHOOLS_TELLU_LIMPOE.find((s) => s.name === name);
+                      const newLevel = matched ? matched.level : 'SD';
+                      setEditingCommitment((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              schoolName: name,
+                              level: newLevel,
+                            }
+                          : null
+                      );
+                    }}
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {OFFICIAL_SCHOOLS_TELLU_LIMPOE.map((s) => (
+                      <option key={s.no} value={s.name}>
+                        [{s.level}] {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Nama Guru Dampingan</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingCommitment.teacherName}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, teacherName: e.target.value } : null
+                      )
+                    }
+                    placeholder="Contoh: Usman S.Pd., Gr"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Kelas & Mapel */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Kelas / Fase</label>
+                  <input
+                    type="text"
+                    value={editingCommitment.className}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, className: e.target.value } : null
+                      )
+                    }
+                    placeholder="Contoh: Kelas VI (Fase C)"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Mata Pelajaran / Fokus</label>
+                  <input
+                    type="text"
+                    value={editingCommitment.subject}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, subject: e.target.value } : null
+                      )
+                    }
+                    placeholder="Contoh: Matematika & Tematik Numerasi"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Tanggal Mulai, Tanggal Selesai, Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600">Tanggal Mulai</label>
+                  <input
+                    type="date"
+                    value={editingCommitment.startDate}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      setEditingCommitment((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              startDate: newStart,
+                              targetEndDate: calc14DaysLater(newStart),
+                            }
+                          : null
+                      );
+                    }}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600">Target Selesai (14 Hari)</label>
+                  <input
+                    type="date"
+                    value={editingCommitment.targetEndDate}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, targetEndDate: e.target.value } : null
+                      )
+                    }
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600">Status Siklus</label>
+                  <select
+                    value={editingCommitment.status}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, status: e.target.value as MicroCommitment['status'] } : null
+                      )
+                    }
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white font-bold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Aktif Berjalan">Aktif Berjalan</option>
+                    <option value="Review Hari Ke-7">Review Hari Ke-7</option>
+                    <option value="Tuntas Berdampak">Tuntas Berdampak</option>
+                    <option value="Perlu Penyesuaian">Perlu Penyesuaian</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 4: Hambatan & Judul Strategi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Fokus Hambatan Siswa</label>
+                  <select
+                    value={editingCommitment.targetObstacle}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              targetObstacle: e.target.value as MicroCommitment['targetObstacle'],
+                            }
+                          : null
+                      )
+                    }
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Linguistik (Pemahaman Teks)">Linguistik (Pemahaman Teks)</option>
+                    <option value="Transformasi Skematis (Model)">Transformasi Skematis (Model)</option>
+                    <option value="Komputasi Teknis">Komputasi Teknis</option>
+                    <option value="Kombinasi Nalar">Kombinasi Nalar</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Judul Strategi Pendampingan</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingCommitment.strategyTitle}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, strategyTitle: e.target.value } : null
+                      )
+                    }
+                    placeholder="Contoh: Stabilo Kata Kunci (Jeda 3 Menit)"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Preset Buttons for editing */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-500">
+                  Ganti Cepat dari Template Teruji:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_TEMPLATES.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setEditingCommitment((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                strategyTitle: p.title,
+                                targetObstacle: p.obstacle,
+                                commitmentText: p.text,
+                                observableSuccessIndicator: p.indicator,
+                              }
+                            : null
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 transition cursor-pointer"
+                    >
+                      {p.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 5: Rumusan Komitmen */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>Rumusan 1 Mikro-Komitmen Tunggal</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Spesifik, terukur, dan fokus 1 aksi</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editingCommitment.commitmentText}
+                  onChange={(e) =>
+                    setEditingCommitment((prev) =>
+                      prev ? { ...prev, commitmentText: e.target.value } : null
+                    )
+                  }
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
+                />
+              </div>
+
+              {/* Row 6: Indikator Keberhasilan */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-emerald-800 flex items-center justify-between">
+                  <span>Tanda Keberhasilan yang Tampak di Kelas (*Observable Sign*)</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Perilaku murid/guru yang dapat diamati</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editingCommitment.observableSuccessIndicator}
+                  onChange={(e) =>
+                    setEditingCommitment((prev) =>
+                      prev ? { ...prev, observableSuccessIndicator: e.target.value } : null
+                    )
+                  }
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-emerald-300 bg-emerald-50/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
+                />
+              </div>
+
+              {/* Row 7: Catatan Pendampingan & Refleksi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-blue-900">
+                    Catatan Jejak Pendampingan Pengawas
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editingCommitment.supervisorNudge?.notes || ''}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              supervisorNudge: {
+                                day3Check: prev.supervisorNudge?.day3Check || false,
+                                day7Check: prev.supervisorNudge?.day7Check || false,
+                                day14Check: prev.supervisorNudge?.day14Check || false,
+                                notes: e.target.value,
+                              },
+                            }
+                          : null
+                      )
+                    }
+                    placeholder="Contoh: Terjadwal sapaan hari ke-3 untuk memantau respons awal siswa."
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-emerald-900">
+                    Catatan Refleksi Guru di Kelas
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editingCommitment.teacherReflectionNote || ''}
+                    onChange={(e) =>
+                      setEditingCommitment((prev) =>
+                        prev ? { ...prev, teacherReflectionNote: e.target.value } : null
+                      )
+                    }
+                    placeholder="Contoh: Siswa antusias menandai kata kunci dengan spidol warna."
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingCommitment(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow-md shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Simpan Perubahan Komitmen</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
