@@ -12,6 +12,14 @@ import {
   FileSpreadsheet,
   Camera,
   Info,
+  RotateCw,
+  Smartphone,
+  Cloud,
+  CloudCheck,
+  LogIn,
+  LogOut,
+  ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   exportAllDataJson,
@@ -20,7 +28,9 @@ import {
   getSchoolProgress,
   getActionPlans,
   getDocPhotos,
+  getMicroCommitments,
 } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
@@ -33,13 +43,14 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   onClose,
   onDataChanged,
 }) => {
-  const [activeTab, setActiveTab] = useState<'backup' | 'restore' | 'reset'>('backup');
+  const [activeTab, setActiveTab] = useState<'cloud' | 'backup' | 'restore' | 'reset'>('cloud');
   const [importedFile, setImportedFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<{
     valid: boolean;
     schoolCount: number;
     planCount: number;
     photoCount: number;
+    commitmentCount: number;
     exportedAt?: string;
     supervisor?: string;
     error?: string;
@@ -50,10 +61,22 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
     text: string;
   } | null>(null);
 
+  const {
+    user,
+    isSyncing,
+    lastSyncTime,
+    syncStatusMessage,
+    login,
+    logout,
+    syncNow,
+    pullNow,
+  } = useAuth();
+
   // Live counts
   const schoolsCount = getSchoolProgress().length;
   const plansCount = getActionPlans().length;
   const photosCount = getDocPhotos().length;
+  const commitmentsCount = getMicroCommitments().length;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -109,13 +132,15 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
         const schools = Array.isArray(data.schools) ? data.schools : [];
         const plans = Array.isArray(data.actionPlans) ? data.actionPlans : [];
         const photos = Array.isArray(data.docPhotos) ? data.docPhotos : [];
+        const commitments = Array.isArray(data.microCommitments) ? data.microCommitments : [];
 
-        if (schools.length === 0 && plans.length === 0) {
+        if (schools.length === 0 && plans.length === 0 && commitments.length === 0) {
           setImportPreview({
             valid: false,
             schoolCount: 0,
             planCount: 0,
             photoCount: 0,
+            commitmentCount: 0,
             error: 'Berkas tidak memuat data sekolah atau rencana aksi GERAK BERDAMPAK.',
           });
         } else {
@@ -124,6 +149,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
             schoolCount: schools.length,
             planCount: plans.length,
             photoCount: photos.length,
+            commitmentCount: commitments.length,
             exportedAt: parsed.exportedAt || 'Tidak tercatat',
             supervisor: parsed.supervisorName || 'Pengawas Pembina',
             rawJson: text,
@@ -135,6 +161,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
           schoolCount: 0,
           planCount: 0,
           photoCount: 0,
+          commitmentCount: 0,
           error: 'Format berkas tidak sesuai. Pastikan memilih berkas .json yang valid.',
         });
       }
@@ -211,42 +238,72 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
           </button>
         </div>
 
+        {/* Panduan Pindah Browser / Perangkat */}
+        <div className="bg-amber-50/90 border-b border-amber-200 px-5 py-3 text-xs text-amber-900 flex items-start gap-2.5">
+          <Smartphone className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold text-amber-950">
+              Cara Menampilkan Data di Browser / Perangkat Lain (Chrome, Edge, atau HP Android):
+            </span>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Browser menyimpan data di penyimpanan lokal masing-masing (*local storage*). Jika Anda menginput data di Chrome dan ingin membukanya di browser lain: 
+              <strong> 1)</strong> Di Chrome, klik <strong>Unduh Berkas Cadangan (.json)</strong>. 
+              <strong> 2)</strong> Buka aplikasi di browser lain/HP, lalu pilih tab <strong>Pulihkan Data (Restore)</strong> dan unggah berkas tersebut.
+            </p>
+          </div>
+        </div>
+
         {/* Tab Controls */}
-        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold p-2 gap-2">
+        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold p-2 gap-2 overflow-x-auto">
+          <button
+            onClick={() => {
+              setActiveTab('cloud');
+              setStatusMessage(null);
+            }}
+            className={`py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === 'cloud'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            }`}
+          >
+            <Cloud className="w-4 h-4" />
+            <span>☁️ Sinkron Cloud (Firebase)</span>
+            {user && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+          </button>
           <button
             onClick={() => {
               setActiveTab('backup');
               setStatusMessage(null);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+            className={`py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'backup'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Download className="w-4 h-4" />
-            <span>1. Cadangkan Data (Backup)</span>
+            <span>1. Unduh Berkas (.json)</span>
           </button>
           <button
             onClick={() => {
               setActiveTab('restore');
               setStatusMessage(null);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+            className={`py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'restore'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Upload className="w-4 h-4" />
-            <span>2. Pulihkan Data (Restore)</span>
+            <span>2. Pulihkan (.json)</span>
           </button>
           <button
             onClick={() => {
               setActiveTab('reset');
               setStatusMessage(null);
             }}
-            className={`py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ml-auto ${
               activeTab === 'reset'
                 ? 'bg-rose-600 text-white shadow-sm'
                 : 'text-slate-500 hover:text-rose-700 hover:bg-rose-50'
@@ -277,6 +334,207 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
 
         {/* Tab Body */}
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
+          {activeTab === 'cloud' && (
+            <div className="space-y-5">
+              {!user ? (
+                /* Card Belum Login */
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-slate-50 border border-blue-200 text-center space-y-4 shadow-sm">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/25">
+                    <Cloud className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1.5 max-w-lg mx-auto">
+                    <h4 className="text-base font-extrabold text-slate-900">
+                      Aktifkan Sinkronisasi Otomatis Cloud Firebase (Gratis)
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Dengan masuk menggunakan akun Google Anda (contoh:{' '}
+                      <strong className="text-slate-800">heriansyah396@gmail.com</strong>), seluruh data 25
+                      sekolah binaan, RTL, dan mikro-komitmen akan tersimpan aman di Cloud Firestore.
+                      Data akan langsung otomatis muncul saat Anda membuka aplikasi di browser lain atau di HP Android!
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => login()}
+                      disabled={isSyncing}
+                      className="inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-md shadow-blue-600/25 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                    >
+                      {isSyncing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <LogIn className="w-4 h-4" />
+                      )}
+                      <span>Masuk dengan Akun Google (Sinkron Cloud)</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3 text-left max-w-xl mx-auto">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80 text-[11px] space-y-1">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Buka di Perangkat Apa Pun</span>
+                      </div>
+                      <p className="text-slate-500 text-[10px]">
+                        Akses lewat laptop, Chrome, Edge, Safari, ataupun HP Android.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80 text-[11px] space-y-1">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>100% Gratis & Resmi</span>
+                      </div>
+                      <p className="text-slate-500 text-[10px]">
+                        Menggunakan paket resmi Google Cloud Firebase Spark Free Tier.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200/80 text-[11px] space-y-1">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <CloudCheck className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Simpan Otomatis</span>
+                      </div>
+                      <p className="text-slate-500 text-[10px]">
+                        Setiap perubahan form atau centang harian tersimpan otomatis ke cloud.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Card Sudah Login & Terhubung */
+                <div className="space-y-4">
+                  <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-blue-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      {user.photoURL ? (
+                        <img
+                          src={user.photoURL}
+                          alt="Avatar"
+                          className="w-12 h-12 rounded-2xl border-2 border-emerald-300 object-cover shadow-2xs"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white font-extrabold text-base flex items-center justify-center shadow-2xs">
+                          {user.displayName?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'P'}
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900">
+                            {user.displayName || 'Pengawas Pembina'}
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                            Cloud Aktif
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium">{user.email}</p>
+                        {lastSyncTime && (
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            Sinkronisasi terakhir: {lastSyncTime}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => logout()}
+                      className="self-start sm:self-center px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-600 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Keluar</span>
+                    </button>
+                  </div>
+
+                  {syncStatusMessage && (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-center gap-2">
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 text-blue-600 shrink-0 ${
+                          isSyncing ? 'animate-spin' : ''
+                        }`}
+                      />
+                      <span>{syncStatusMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Tombol Aksi Sinkronisasi Manual */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => syncNow()}
+                      disabled={isSyncing}
+                      className="p-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSyncing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      <span>Kirim / Cadangkan Data Lokal ke Cloud</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => pullNow()}
+                      disabled={isSyncing}
+                      className="p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSyncing ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      <span>Tarik / Segarkan Data dari Cloud</span>
+                    </button>
+                  </div>
+
+                  {/* Petunjuk Penggunaan di Browser Lain */}
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Smartphone className="w-4 h-4 text-amber-700" />
+                      <span>Cara Membuka Data Ini di Browser Lain (Edge, Firefox, atau HP Android):</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-amber-900 leading-relaxed">
+                      <li>Buka tautan aplikasi ini di browser lain atau di HP Anda.</li>
+                      <li>
+                        Klik tombol <strong>"Sinkron Cloud"</strong> di bagian atas layar.
+                      </li>
+                      <li>
+                        Masuk dengan akun Google yang sama: <strong>{user.email}</strong>.
+                      </li>
+                      <li>
+                        Selesai! Seluruh 25 sekolah binaan, rencana aksi, dan mikro-komitmen yang sudah Anda isi
+                        akan langsung terbaca dan tersinkronisasi otomatis.
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Ringkasan Data */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                  <School className="w-5 h-5 mx-auto text-blue-600 mb-1" />
+                  <div className="text-xl font-extrabold text-slate-900">{schoolsCount}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Sekolah Binaan</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                  <FileSpreadsheet className="w-5 h-5 mx-auto text-emerald-600 mb-1" />
+                  <div className="text-xl font-extrabold text-slate-900">{plansCount}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Rencana RTL</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                  <RotateCw className="w-5 h-5 mx-auto text-amber-600 mb-1" />
+                  <div className="text-xl font-extrabold text-slate-900">{commitmentsCount}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Mikro-Komitmen</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                  <Camera className="w-5 h-5 mx-auto text-purple-600 mb-1" />
+                  <div className="text-xl font-extrabold text-slate-900">{photosCount}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Foto Kegiatan</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'backup' && (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 text-xs text-blue-900 space-y-1">
@@ -293,21 +551,26 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
               </div>
 
               {/* Status Ringkasan Data Saat Ini */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
                   <School className="w-5 h-5 mx-auto text-blue-600 mb-1" />
                   <div className="text-xl font-extrabold text-slate-900">{schoolsCount}</div>
-                  <div className="text-[11px] text-slate-500">Sekolah Binaan</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Sekolah Binaan</div>
                 </div>
-                <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
                   <FileSpreadsheet className="w-5 h-5 mx-auto text-emerald-600 mb-1" />
                   <div className="text-xl font-extrabold text-slate-900">{plansCount}</div>
-                  <div className="text-[11px] text-slate-500">Rencana Tindak Lanjut</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Rencana RTL</div>
                 </div>
-                <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                  <RotateCw className="w-5 h-5 mx-auto text-amber-600 mb-1" />
+                  <div className="text-xl font-extrabold text-slate-900">{commitmentsCount}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Mikro-Komitmen</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50">
                   <Camera className="w-5 h-5 mx-auto text-purple-600 mb-1" />
                   <div className="text-xl font-extrabold text-slate-900">{photosCount}</div>
-                  <div className="text-[11px] text-slate-500">Foto Kegiatan</div>
+                  <div className="text-[10px] text-slate-500 font-medium">Foto Kegiatan</div>
                 </div>
               </div>
 
@@ -376,6 +639,12 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                         <span className="text-slate-500">Jumlah Rencana RTL:</span>
                         <strong className="text-emerald-700 font-bold">
                           {importPreview.planCount} RTL
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Jumlah Mikro-Komitmen:</span>
+                        <strong className="text-amber-700 font-bold">
+                          {importPreview.commitmentCount} Komitmen 14 Hari
                         </strong>
                       </div>
                       <div className="flex justify-between">

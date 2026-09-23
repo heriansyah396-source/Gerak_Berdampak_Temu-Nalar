@@ -1,0 +1,363 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile and authentication state",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 256
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account creation ISO timestamp",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update ISO timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "SupervisorProfile": {
+      "title": "SupervisorProfile",
+      "description": "Profile data of the school supervisor",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Supervisor full name with titles",
+          "maxLength": 256
+        },
+        "nip": {
+          "type": "string",
+          "description": "Supervisor NIP identifier",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Position / Jabatan",
+          "maxLength": 128
+        },
+        "district": {
+          "type": "string",
+          "description": "Kecamatan / District",
+          "maxLength": 128
+        },
+        "kab": {
+          "type": "string",
+          "description": "Kabupaten / Regency",
+          "maxLength": 128
+        },
+        "prov": {
+          "type": "string",
+          "description": "Provinsi / Province",
+          "maxLength": 128
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "ISO timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "name"]
+    },
+    "SchoolProgressDoc": {
+      "title": "SchoolProgressDoc",
+      "description": "School progress and supervision observation state",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Record identifier",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "School name",
+          "maxLength": 256
+        },
+        "level": {
+          "type": "string",
+          "description": "School educational level",
+          "maxLength": 32
+        },
+        "status": {
+          "type": "string",
+          "description": "Status pendampingan",
+          "maxLength": 64
+        },
+        "focusPriority": {
+          "type": "string",
+          "description": "Fokus hambatan",
+          "maxLength": 128
+        },
+        "lastVisitDate": {
+          "type": "string",
+          "description": "Tanggal kunjungan",
+          "maxLength": 64
+        },
+        "notes": {
+          "type": "string",
+          "description": "Catatan pengawas",
+          "maxLength": 5000
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "schoolName"]
+    },
+    "ActionPlanDoc": {
+      "title": "ActionPlanDoc",
+      "description": "Rencana Tindak Lanjut (RTL) GERAK BERDAMPAK",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Action plan ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Target school name",
+          "maxLength": 256
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of plan",
+          "maxLength": 64
+        },
+        "focusArea": {
+          "type": "string",
+          "description": "Focus area",
+          "maxLength": 256
+        },
+        "rootCause": {
+          "type": "string",
+          "description": "Root cause analysis",
+          "maxLength": 2000
+        },
+        "actionPlan": {
+          "type": "string",
+          "description": "Concrete action plan text",
+          "maxLength": 5000
+        },
+        "targetMetric": {
+          "type": "string",
+          "description": "Observable success metric",
+          "maxLength": 2000
+        },
+        "timeline": {
+          "type": "string",
+          "description": "Timeline span",
+          "maxLength": 128
+        },
+        "supervisorNotes": {
+          "type": "string",
+          "description": "Notes from supervisor",
+          "maxLength": 5000
+        },
+        "status": {
+          "type": "string",
+          "description": "Plan execution status",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "schoolName", "actionPlan"]
+    },
+    "MicroCommitmentDoc": {
+      "title": "MicroCommitmentDoc",
+      "description": "14-Day Micro-commitment cycle for teachers",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Commitment ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Target school name",
+          "maxLength": 256
+        },
+        "level": {
+          "type": "string",
+          "description": "School level SD/SMP",
+          "maxLength": 32
+        },
+        "teacherName": {
+          "type": "string",
+          "description": "Target teacher name",
+          "maxLength": 256
+        },
+        "className": {
+          "type": "string",
+          "description": "Classroom or phase",
+          "maxLength": 128
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject area",
+          "maxLength": 128
+        },
+        "targetObstacle": {
+          "type": "string",
+          "description": "Target obstacle type",
+          "maxLength": 128
+        },
+        "strategyTitle": {
+          "type": "string",
+          "description": "Strategy title",
+          "maxLength": 256
+        },
+        "commitmentText": {
+          "type": "string",
+          "description": "Single micro-commitment text",
+          "maxLength": 5000
+        },
+        "observableSuccessIndicator": {
+          "type": "string",
+          "description": "Observable classroom sign",
+          "maxLength": 5000
+        },
+        "status": {
+          "type": "string",
+          "description": "Cycle status",
+          "maxLength": 64
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date",
+          "maxLength": 64
+        },
+        "targetEndDate": {
+          "type": "string",
+          "description": "14-day end date",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "schoolName", "teacherName", "commitmentText"]
+    },
+    "DocPhotoDoc": {
+      "title": "DocPhotoDoc",
+      "description": "Supervision documentation photo record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Photo record ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "maxLength": 128
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Associated school name",
+          "maxLength": 256
+        },
+        "date": {
+          "type": "string",
+          "description": "Activity date",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Activity title",
+          "maxLength": 256
+        },
+        "caption": {
+          "type": "string",
+          "description": "Description or caption",
+          "maxLength": 2000
+        },
+        "activityType": {
+          "type": "string",
+          "description": "Activity categorization",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "schoolName", "title"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile information"
+    },
+    "/supervisor_profiles/{userId}": {
+      "schema": "SupervisorProfile",
+      "description": "Supervisor profile data"
+    },
+    "/school_progress/{progressId}": {
+      "schema": "SchoolProgressDoc",
+      "description": "Supervision school observation records"
+    },
+    "/action_plans/{planId}": {
+      "schema": "ActionPlanDoc",
+      "description": "Follow-up action plans (RTL)"
+    },
+    "/micro_commitments/{commitmentId}": {
+      "schema": "MicroCommitmentDoc",
+      "description": "14-Day Micro-commitment cycle records"
+    },
+    "/doc_photos/{photoId}": {
+      "schema": "DocPhotoDoc",
+      "description": "Supervision activity photos"
+    }
+  }
+}

@@ -17,10 +17,13 @@ import {
   CheckCircle,
   ExternalLink,
   Database,
+  Cloud,
+  CloudCheck,
 } from 'lucide-react';
 import { NavTab } from '../types';
 import { APP_INFO } from '../data/appData';
 import { resetAllData } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -38,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onResetData,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { user, login } = useAuth();
 
   const menuItems: { id: NavTab; num: string; label: string; icon: React.ElementType; badge?: string }[] = [
     { id: 'beranda', num: '01', label: 'Beranda & Pengantar', icon: Home },
@@ -154,6 +158,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Action Footer */}
       <div className="p-3 border-t border-slate-800/90 bg-slate-950 space-y-2">
+        {/* Cloud Status Card */}
+        {user ? (
+          <button
+            onClick={onOpenBackupModal}
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-emerald-900/60 hover:border-emerald-700/80 text-left transition group cursor-pointer"
+            title="Kelola sinkronisasi cloud"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <CloudCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-slate-200 truncate">
+                  {user.displayName || user.email?.split('@')[0]}
+                </div>
+                <div className="text-[9px] text-emerald-400 flex items-center gap-1 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Cloud Firebase Aktif
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] text-slate-400 group-hover:text-emerald-400 transition font-bold">
+              Kelola
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (onOpenBackupModal) onOpenBackupModal();
+              else login();
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border border-blue-800/70 text-xs font-bold transition cursor-pointer"
+            title="Masuk akun Google agar data tersinkronisasi otomatis antar-browser & HP"
+          >
+            <Cloud className="w-3.5 h-3.5 text-blue-400" />
+            <span>Aktifkan Sinkron Cloud</span>
+          </button>
+        )}
+
         <button
           id="sidebar-print-btn"
           onClick={onOpenPrintModal}

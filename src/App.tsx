@@ -15,9 +15,18 @@ import { ImpactDashboardView } from './components/ImpactDashboardView';
 import { PrintModal } from './components/PrintModal';
 import { HelpModal } from './components/HelpModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
+import { AuthProvider } from './context/AuthContext';
 import { initializeStorage } from './utils/storage';
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}
+
+function MainApp() {
   const [currentTab, setCurrentTab] = useState<NavTab>('beranda');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);

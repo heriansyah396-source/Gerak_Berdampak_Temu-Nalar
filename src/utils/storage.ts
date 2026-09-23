@@ -30,6 +30,42 @@ export const KEYS = {
   DOC_PHOTOS: 'gerak_berdampak_doc_photos',
   MICRO_COMMITMENTS: 'gerak_berdampak_micro_commitments',
   CUSTOM_QUESTIONS: 'gerak_berdampak_custom_questions',
+  SUPERVISOR_PROFILE: 'gerak_berdampak_supervisor_profile',
+};
+
+export interface SupervisorProfileData {
+  name: string;
+  nip?: string;
+  role?: string;
+  region?: string;
+  email?: string;
+  phone?: string;
+  title?: string;
+  district?: string;
+  kab?: string;
+  prov?: string;
+  lastUpdated?: string;
+}
+
+export const getSupervisorProfile = (): SupervisorProfileData => {
+  try {
+    const raw = localStorage.getItem(KEYS.SUPERVISOR_PROFILE);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {
+    name: 'Heriansyah., S.Si., S.Pd., M.Pd',
+    nip: '19790403 200502 1 003',
+    role: 'Pengawas Sekolah Madya / Pembina',
+    region: 'Kecamatan Tellu Limpoe, Kab. Sidenreng Rappang',
+    email: 'heriansyah396@gmail.com',
+  };
+};
+
+export const saveSupervisorProfile = (profile: SupervisorProfileData): SupervisorProfileData => {
+  safeLocalStorageSet(KEYS.SUPERVISOR_PROFILE, JSON.stringify(profile));
+  idbSet(KEYS.SUPERVISOR_PROFILE, profile).catch(() => {});
+  notifyStorageUpdated(KEYS.SUPERVISOR_PROFILE, profile);
+  return profile;
 };
 
 // Safe wrapper around localStorage.setItem
@@ -251,6 +287,13 @@ export const saveActionPlan = (plan: ActionPlanItem): ActionPlanItem[] => {
   return updated;
 };
 
+export const saveActionPlans = (plans: ActionPlanItem[]): ActionPlanItem[] => {
+  safeLocalStorageSet(KEYS.RTL, JSON.stringify(plans));
+  idbSet(KEYS.RTL, plans).catch((err) => console.warn('[IDB] Failed to backup RTLs', err));
+  notifyStorageUpdated(KEYS.RTL, plans);
+  return plans;
+};
+
 export const deleteActionPlan = (id: string): ActionPlanItem[] => {
   const current = getActionPlans();
   const updated = current.filter((p) => p.id !== id);
@@ -337,17 +380,25 @@ export const getSchoolProgress = (): SchoolProgressItem[] => {
   }
 };
 
-export const saveSchoolProgress = (item: SchoolProgressItem): SchoolProgressItem[] => {
+export function saveSchoolProgress(item: SchoolProgressItem): SchoolProgressItem[];
+export function saveSchoolProgress(items: SchoolProgressItem[]): SchoolProgressItem[];
+export function saveSchoolProgress(itemOrItems: SchoolProgressItem | SchoolProgressItem[]): SchoolProgressItem[] {
+  if (Array.isArray(itemOrItems)) {
+    safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(itemOrItems));
+    idbSet(KEYS.SCHOOL_PROGRESS, itemOrItems).catch(() => {});
+    notifyStorageUpdated(KEYS.SCHOOL_PROGRESS, itemOrItems);
+    return itemOrItems;
+  }
   const current = getSchoolProgress();
-  const exists = current.some((s) => s.id === item.id);
+  const exists = current.some((s) => s.id === itemOrItems.id);
   const updated = exists
-    ? current.map((s) => (s.id === item.id ? item : s))
-    : [item, ...current];
+    ? current.map((s) => (s.id === itemOrItems.id ? itemOrItems : s))
+    : [itemOrItems, ...current];
   safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(updated));
   idbSet(KEYS.SCHOOL_PROGRESS, updated).catch((err) => console.warn('[IDB] Failed to backup school progress', err));
   notifyStorageUpdated(KEYS.SCHOOL_PROGRESS, updated);
   return updated;
-};
+}
 
 export const deleteSchoolProgress = (id: string): SchoolProgressItem[] => {
   const current = getSchoolProgress();

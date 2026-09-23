@@ -17,10 +17,13 @@ import {
   Printer,
   RotateCcw,
   CheckCircle,
+  Cloud,
+  CloudCheck,
 } from 'lucide-react';
 import { NavTab } from '../types';
 import { APP_INFO } from '../data/appData';
 import { resetAllData } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -42,6 +45,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onResetData,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { user, login } = useAuth();
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -183,6 +187,44 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
         {/* Action Buttons in Footer */}
         <div className="p-3 border-t border-slate-800/80 bg-slate-950 space-y-2">
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenBackupModal) onOpenBackupModal();
+                onClose();
+              }}
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-emerald-800/70 text-left transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <CloudCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-slate-200 truncate">
+                    {user.displayName || user.email?.split('@')[0]}
+                  </div>
+                  <div className="text-[9px] text-emerald-400 flex items-center gap-1 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Cloud Firebase Aktif
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-bold">Kelola</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenBackupModal) onOpenBackupModal();
+                else login();
+                onClose();
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-blue-950/60 border border-blue-800/70 text-blue-300 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Cloud className="w-3.5 h-3.5 text-blue-400" />
+              <span>Aktifkan Sinkron Cloud (Google)</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {

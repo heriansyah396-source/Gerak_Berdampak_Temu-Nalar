@@ -7,8 +7,12 @@ import {
   HelpCircle,
   School,
   Database,
+  Cloud,
+  CloudCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { NavTab } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   currentTab: NavTab;
@@ -79,6 +83,8 @@ export const Header: React.FC<HeaderProps> = ({
     subtitle: 'Temu Nalar Literasi-Numerasi',
   };
 
+  const { user, isSyncing, login, lastSyncTime } = useAuth();
+
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-20 shadow-xs px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between transition-all">
       <div className="flex items-center gap-3 min-w-0">
@@ -114,6 +120,37 @@ export const Header: React.FC<HeaderProps> = ({
           <School className="w-3.5 h-3.5 text-blue-600" />
           <span>Kec. Tellu Limpoe</span>
         </div>
+
+        {/* Cloud Sync Status / Google Account */}
+        {user ? (
+          <button
+            onClick={onOpenBackupModal}
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition shadow-2xs cursor-pointer"
+            title={`Tersinkron Cloud Firebase: ${user.email} (Klik untuk kelola)`}
+          >
+            {isSyncing ? (
+              <RefreshCw className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+            ) : (
+              <CloudCheck className="w-3.5 h-3.5 text-emerald-600" />
+            )}
+            <span className="hidden sm:inline truncate max-w-[130px]">
+              {user.displayName || user.email?.split('@')[0]}
+            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (onOpenBackupModal) onOpenBackupModal();
+              else login();
+            }}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 text-blue-700 hover:bg-blue-100 text-xs font-bold transition shadow-2xs cursor-pointer"
+            title="Masuk dengan Google untuk sinkronkan data antar-browser & HP"
+          >
+            <Cloud className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">Sinkron Cloud</span>
+          </button>
+        )}
 
         <button
           onClick={onOpenHelpModal}
