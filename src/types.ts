@@ -210,10 +210,12 @@ export interface OfficialSchoolItem {
 export interface DocPhoto {
   id: string;
   schoolName: string; // school name or 'ALL'
+  teacherName?: string; // specific teacher name, or 'ALL' for general school photo
+  activityType?: string; // e.g., 'Observasi Kelas', 'Refleksi Klinis GERAK', 'Pembedahan Teks Nalar', 'Simulasi Media', etc.
   title: string;
   caption: string;
   date: string;
-  dataUrl: string; // base64 data url
+  dataUrl: string; // base64 data url or image URL
 }
 
 export interface MicroCommitment {

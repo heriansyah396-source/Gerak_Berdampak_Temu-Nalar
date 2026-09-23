@@ -16,8 +16,9 @@ import {
   INITIAL_SCHOOL_PROGRESS,
   INITIAL_MICRO_COMMITMENTS,
 } from '../data/appData';
+import { idbSet, idbGet, idbDelete } from './indexedDb';
 
-const KEYS = {
+export const KEYS = {
   GERAK: 'gerak_berdampak_gerak_records',
   RTL: 'gerak_berdampak_action_plans',
   REFLECTIONS: 'gerak_berdampak_reflections',
@@ -31,22 +32,169 @@ const KEYS = {
   CUSTOM_QUESTIONS: 'gerak_berdampak_custom_questions',
 };
 
+// Safe wrapper around localStorage.setItem
+export const safeLocalStorageSet = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err: any) {
+    console.error(`[Storage] localStorage.setItem failed for key "${key}":`, err);
+    return false;
+  }
+};
+
+// Broadcast storage update so all components/tabs update immediately
+const notifyStorageUpdated = (key: string, data?: any) => {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('app_storage_updated', {
+          detail: { key, data, timestamp: Date.now() },
+        })
+      );
+    } catch {}
+  }
+};
+
 export const INITIAL_DOC_PHOTOS: DocPhoto[] = [
+  // UPT SD NEGERI 1 MASSEPE - Guru 1: Andi Nurhaliza, S.Pd.
   {
-    id: 'photo-default-1',
-    schoolName: 'ALL',
-    title: 'Pendampingan Temu Nalar & Dialog Kelas',
-    caption: 'Pengawas pembina mendampingi guru dan siswa membedah teks soal cerita numerasi di kelas dampingan.',
-    date: 'Agustus 2026',
+    id: 'photo-massepe-andi-1',
+    schoolName: 'UPT SD NEGERI 1 MASSEPE',
+    teacherName: 'Andi Nurhaliza, S.Pd.',
+    activityType: 'Observasi Pembelajaran Kelas',
+    title: 'Pendampingan Pembedahan Teks Soal Cerita — Kelas V-A',
+    caption: 'Guru Andi Nurhaliza membimbing siswa menandai kata kunci dan membedakan informasi fakta vs pertanyaan pada lembar kerja numerasi.',
+    date: '14 Agustus 2026',
     dataUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80',
   },
   {
-    id: 'photo-default-2',
-    schoolName: 'ALL',
-    title: 'Refleksi Bersama Guru & Tindak Lanjut Kombel',
-    caption: 'Diskusi umpan balik konstruktif dan penyepakatan strategi pembelajaran berbasis bukti nyata.',
-    date: 'September 2026',
+    id: 'photo-massepe-andi-2',
+    schoolName: 'UPT SD NEGERI 1 MASSEPE',
+    teacherName: 'Andi Nurhaliza, S.Pd.',
+    activityType: 'Refleksi Klinis GERAK',
+    title: 'Refleksi Klinis Pasca-Observasi bersama Ibu Andi Nurhaliza',
+    caption: 'Pengawas pembina dan guru menganalisis pergeseran pemahaman siswa dari 36% menjadi 82% pasca penerapan Strategi 1.',
+    date: '18 Oktober 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SD NEGERI 1 MASSEPE - Guru 2: Nurhayati, S.Pd.
+  {
+    id: 'photo-massepe-nurhayati-1',
+    schoolName: 'UPT SD NEGERI 1 MASSEPE',
+    teacherName: 'Nurhayati, S.Pd.',
+    activityType: 'Simulasi Strategi Nalar',
+    title: 'Penerapan Strategi 1 (Baca, Tandai, Tanya) di Kelas IV-B',
+    caption: 'Guru Nurhayati melatih siswa menggunakan stabilo warna untuk memilah angka pengalih dan menyusun skema nalar mandiri.',
+    date: '12 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'photo-massepe-nurhayati-2',
+    schoolName: 'UPT SD NEGERI 1 MASSEPE',
+    teacherName: 'Nurhayati, S.Pd.',
+    activityType: 'Pemeriksaan Hasil Formatif',
+    title: 'Pemberian Umpan Balik Formatif Guru Nurhayati pada Buku Latihan',
+    caption: 'Guru memeriksa langkah nalar siswa sebelum siswa melakukan komputasi teknis pada soal bertingkat.',
+    date: '28 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SMP NEGERI 1 TELLU LIMPOE - Guru 1: Muhammad Rusdi, S.Pd., Gr.
+  {
+    id: 'photo-smp1-rusdi-1',
+    schoolName: 'UPT SMP NEGERI 1 TELLU LIMPOE',
+    teacherName: 'Muhammad Rusdi, S.Pd., Gr.',
+    activityType: 'Observasi Pembelajaran Kelas',
+    title: 'Praktik Detektif Nalar & Papan Tulis Kelas VII-B',
+    caption: 'Pak Muhammad Rusdi memandu siswa mengoreksi jebakan informasi pada soal aritmetika bertingkat.',
+    date: '16 Agustus 2026',
     dataUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'photo-smp1-rusdi-2',
+    schoolName: 'UPT SMP NEGERI 1 TELLU LIMPOE',
+    teacherName: 'Muhammad Rusdi, S.Pd., Gr.',
+    activityType: 'Refleksi Klinis GERAK',
+    title: 'Dialog Konstruktif Hasil Asesmen Formatif Pak Rusdi',
+    caption: 'Pengawas pembina mendiskusikan peningkatan N-Gain nalar siswa kelas VII-B sebesar 0.65.',
+    date: '22 Oktober 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SMP NEGERI 1 TELLU LIMPOE - Guru 2: Ahmad Syahrir, S.Pd.
+  {
+    id: 'photo-smp1-syahrir-1',
+    schoolName: 'UPT SMP NEGERI 1 TELLU LIMPOE',
+    teacherName: 'Ahmad Syahrir, S.Pd.',
+    activityType: 'Observasi Diskusi Kelas',
+    title: 'Diskusi Berpasangan Soal Cerita Aritmetika Sosial',
+    caption: 'Pak Ahmad Syahrir mendampingi siswa memvalidasi keselarasan jawaban akhir dengan satuan nalar.',
+    date: '10 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'photo-smp1-syahrir-2',
+    schoolName: 'UPT SMP NEGERI 1 TELLU LIMPOE',
+    teacherName: 'Ahmad Syahrir, S.Pd.',
+    activityType: 'Evaluasi & Refleksi RTL',
+    title: 'Refleksi Capaian RTL Kombel Matematika SMPN 1 Tellu Limpoe',
+    caption: 'Penyusunan portofolio koreksi nalar siswa bersama kepala sekolah dan pengawas pembina.',
+    date: '25 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SD NEGERI 1 AMPARITA - Guru 1: Siti Rahmawati, S.Pd.
+  {
+    id: 'photo-amparita-rahma-1',
+    schoolName: 'UPT SD NEGERI 1 AMPARITA',
+    teacherName: 'Siti Rahmawati, S.Pd.',
+    activityType: 'Simulasi Peran Konkret',
+    title: 'Menceritakan Kembali Situasi Masalah dengan Media Konkret di Kelas IV',
+    caption: 'Ibu Siti Rahmawati mengajak siswa bermain peran situasi jual beli hasil bumi lokal Sidrap.',
+    date: '22 Agustus 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SD NEGERI 1 AMPARITA - Guru 2: Hasnidar, S.Pd.
+  {
+    id: 'photo-amparita-hasnidar-1',
+    schoolName: 'UPT SD NEGERI 1 AMPARITA',
+    teacherName: 'Hasnidar, S.Pd.',
+    activityType: 'Peragaan Media Manipulatif',
+    title: 'Peragaan Media Konkret & Timbangan Mini di Kelas III',
+    caption: 'Ibu Hasnidar membimbing siswa mengeksplorasi konsep satuan berat dan harga per kilogram.',
+    date: '11 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SD NEGERI 2 BILOKKA - Guru: Kaharuddin, S.Pd.
+  {
+    id: 'photo-bilokka-kahar-1',
+    schoolName: 'UPT SD NEGERI 2 BILOKKA',
+    teacherName: 'Kaharuddin, S.Pd.',
+    activityType: 'Pemodelan Kalimat Matematika',
+    title: 'Metode "Jelaskan Langkahmu Sebelum Menghitung" di Kelas VI',
+    caption: 'Pak Kaharuddin melatih siswa menyusun kalimat matematika bertahap pada pecahan campuran.',
+    date: '26 Agustus 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1516534775068-ba3e7458af70?auto=format&fit=crop&w=800&q=80',
+  },
+  // UPT SMP NEGERI 2 TELLU LIMPOE - Guru: Nurjannah, S.Pd.
+  {
+    id: 'photo-smp2-nurjannah-1',
+    schoolName: 'UPT SMP NEGERI 2 TELLU LIMPOE',
+    teacherName: 'Nurjannah, S.Pd.',
+    activityType: 'Analisis Data Tabel',
+    title: 'Pembedahan Tabel Statistik & Detektif Nalar Kelas VIII',
+    caption: 'Ibu Nurjannah membimbing diskusi kritis membedakan data primer dan informasi pengalih.',
+    date: '03 September 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=800&q=80',
+  },
+  // Dokumentasi Umum Pendampingan Satuan Pendidikan
+  {
+    id: 'photo-general-1',
+    schoolName: 'ALL',
+    teacherName: 'ALL',
+    activityType: 'Koordinasi Supervisi Umum',
+    title: 'Pertemuan Koordinasi Pendampingan Pengawas di Satuan Pendidikan',
+    caption: 'Penyamaan persepsi instrumen temu nalar dan alur pendampingan klinis GERAK bersama jajaran pendidik sekolah binaan.',
+    date: 'Agustus 2026',
+    dataUrl: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
   },
 ];
 
@@ -54,11 +202,8 @@ export const getGerakRecords = (): GerakRecord[] => {
   try {
     const data = localStorage.getItem(KEYS.GERAK);
     if (!data) return INITIAL_GERAK_RECORDS;
-    const parsed: GerakRecord[] = JSON.parse(data);
-    if (parsed.some((r) => r.schoolName.includes('SDN 2 Tellu Limpoe') || r.schoolName.includes('SDN 1 Tellu Limpoe'))) {
-      localStorage.setItem(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
-      return INITIAL_GERAK_RECORDS;
-    }
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_GERAK_RECORDS;
     return parsed;
   } catch (e) {
     console.error('Failed to read GERAK records', e);
@@ -69,14 +214,18 @@ export const getGerakRecords = (): GerakRecord[] => {
 export const saveGerakRecord = (record: GerakRecord): GerakRecord[] => {
   const current = getGerakRecords();
   const updated = [record, ...current.filter((r) => r.id !== record.id)];
-  localStorage.setItem(KEYS.GERAK, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.GERAK, JSON.stringify(updated));
+  idbSet(KEYS.GERAK, updated).catch((err) => console.warn('[IDB] Failed to backup GERAK record', err));
+  notifyStorageUpdated(KEYS.GERAK, updated);
   return updated;
 };
 
 export const deleteGerakRecord = (id: string): GerakRecord[] => {
   const current = getGerakRecords();
   const updated = current.filter((r) => r.id !== id);
-  localStorage.setItem(KEYS.GERAK, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.GERAK, JSON.stringify(updated));
+  idbSet(KEYS.GERAK, updated).catch((err) => console.warn('[IDB] Failed to update GERAK record', err));
+  notifyStorageUpdated(KEYS.GERAK, updated);
   return updated;
 };
 
@@ -84,11 +233,8 @@ export const getActionPlans = (): ActionPlanItem[] => {
   try {
     const data = localStorage.getItem(KEYS.RTL);
     if (!data) return INITIAL_ACTION_PLANS;
-    const parsed: ActionPlanItem[] = JSON.parse(data);
-    if (parsed.some((p) => p.schoolName.includes('SDN 1 Tellu Limpoe') || p.schoolName.includes('SMPN 1 Tellu Limpoe'))) {
-      localStorage.setItem(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
-      return INITIAL_ACTION_PLANS;
-    }
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_ACTION_PLANS;
     return parsed;
   } catch (e) {
     console.error('Failed to read action plans', e);
@@ -99,14 +245,18 @@ export const getActionPlans = (): ActionPlanItem[] => {
 export const saveActionPlan = (plan: ActionPlanItem): ActionPlanItem[] => {
   const current = getActionPlans();
   const updated = [plan, ...current.filter((p) => p.id !== plan.id)];
-  localStorage.setItem(KEYS.RTL, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.RTL, JSON.stringify(updated));
+  idbSet(KEYS.RTL, updated).catch((err) => console.warn('[IDB] Failed to backup RTL', err));
+  notifyStorageUpdated(KEYS.RTL, updated);
   return updated;
 };
 
 export const deleteActionPlan = (id: string): ActionPlanItem[] => {
   const current = getActionPlans();
   const updated = current.filter((p) => p.id !== id);
-  localStorage.setItem(KEYS.RTL, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.RTL, JSON.stringify(updated));
+  idbSet(KEYS.RTL, updated).catch((err) => console.warn('[IDB] Failed to update RTL', err));
+  notifyStorageUpdated(KEYS.RTL, updated);
   return updated;
 };
 
@@ -123,14 +273,18 @@ export const getReflections = (): ReflectionReport[] => {
 export const saveReflection = (report: ReflectionReport): ReflectionReport[] => {
   const current = getReflections();
   const updated = [report, ...current.filter((r) => r.id !== report.id)];
-  localStorage.setItem(KEYS.REFLECTIONS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.REFLECTIONS, JSON.stringify(updated));
+  idbSet(KEYS.REFLECTIONS, updated).catch((err) => console.warn('[IDB] Failed to backup reflection', err));
+  notifyStorageUpdated(KEYS.REFLECTIONS, updated);
   return updated;
 };
 
 export const deleteReflection = (id: string): ReflectionReport[] => {
   const current = getReflections();
   const updated = current.filter((r) => r.id !== id);
-  localStorage.setItem(KEYS.REFLECTIONS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.REFLECTIONS, JSON.stringify(updated));
+  idbSet(KEYS.REFLECTIONS, updated).catch((err) => console.warn('[IDB] Failed to update reflection', err));
+  notifyStorageUpdated(KEYS.REFLECTIONS, updated);
   return updated;
 };
 
@@ -145,7 +299,9 @@ export const getImpactData = (): ImpactData => {
 };
 
 export const saveImpactData = (data: ImpactData): ImpactData => {
-  localStorage.setItem(KEYS.IMPACT, JSON.stringify(data));
+  safeLocalStorageSet(KEYS.IMPACT, JSON.stringify(data));
+  idbSet(KEYS.IMPACT, data).catch((err) => console.warn('[IDB] Failed to backup impact data', err));
+  notifyStorageUpdated(KEYS.IMPACT, data);
   return data;
 };
 
@@ -162,7 +318,9 @@ export const toggleObservedProblem = (id: number): number[] => {
   const current = getObservedProblems();
   const exists = current.includes(id);
   const updated = exists ? current.filter((i) => i !== id) : [...current, id];
-  localStorage.setItem(KEYS.OBSERVED_PROBLEMS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.OBSERVED_PROBLEMS, JSON.stringify(updated));
+  idbSet(KEYS.OBSERVED_PROBLEMS, updated).catch((err) => console.warn('[IDB] Failed to backup observed problems', err));
+  notifyStorageUpdated(KEYS.OBSERVED_PROBLEMS, updated);
   return updated;
 };
 
@@ -170,11 +328,8 @@ export const getSchoolProgress = (): SchoolProgressItem[] => {
   try {
     const data = localStorage.getItem(KEYS.SCHOOL_PROGRESS);
     if (!data) return INITIAL_SCHOOL_PROGRESS;
-    const parsed: SchoolProgressItem[] = JSON.parse(data);
-    if (parsed.some((s) => s.schoolName.includes('SDN 1 Tellu Limpoe') || s.schoolName.includes('SDN 3 Tellu Limpoe'))) {
-      localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
-      return INITIAL_SCHOOL_PROGRESS;
-    }
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return INITIAL_SCHOOL_PROGRESS;
     return parsed;
   } catch (e) {
     console.error('Failed to read school progress', e);
@@ -188,14 +343,18 @@ export const saveSchoolProgress = (item: SchoolProgressItem): SchoolProgressItem
   const updated = exists
     ? current.map((s) => (s.id === item.id ? item : s))
     : [item, ...current];
-  localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(updated));
+  idbSet(KEYS.SCHOOL_PROGRESS, updated).catch((err) => console.warn('[IDB] Failed to backup school progress', err));
+  notifyStorageUpdated(KEYS.SCHOOL_PROGRESS, updated);
   return updated;
 };
 
 export const deleteSchoolProgress = (id: string): SchoolProgressItem[] => {
   const current = getSchoolProgress();
   const updated = current.filter((s) => s.id !== id);
-  localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(updated));
+  idbSet(KEYS.SCHOOL_PROGRESS, updated).catch((err) => console.warn('[IDB] Failed to update school progress', err));
+  notifyStorageUpdated(KEYS.SCHOOL_PROGRESS, updated);
   return updated;
 };
 
@@ -250,7 +409,19 @@ export const calculateNGain = (beforePct: number, afterPct: number): NGainResult
 export const getDocPhotos = (): DocPhoto[] => {
   try {
     const data = localStorage.getItem(KEYS.DOC_PHOTOS);
-    return data ? JSON.parse(data) : INITIAL_DOC_PHOTOS;
+    if (!data) return INITIAL_DOC_PHOTOS;
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed) || parsed.length === 0) return INITIAL_DOC_PHOTOS;
+    // Check if user has old legacy default photos without teacherName
+    const isLegacyDefaultOnly =
+      parsed.length <= 2 &&
+      parsed.every((p: any) => !p.teacherName || p.id === 'photo-default-1' || p.id === 'photo-default-2');
+    if (isLegacyDefaultOnly) {
+      safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+      idbSet(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS).catch(() => {});
+      return INITIAL_DOC_PHOTOS;
+    }
+    return parsed;
   } catch (e) {
     console.error('Failed to read doc photos', e);
     return INITIAL_DOC_PHOTOS;
@@ -263,33 +434,205 @@ export const saveDocPhoto = (photo: DocPhoto): DocPhoto[] => {
   const updated = exists
     ? current.map((p) => (p.id === photo.id ? photo : p))
     : [photo, ...current];
-  localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(updated));
+  idbSet(KEYS.DOC_PHOTOS, updated).catch((err) => console.warn('[IDB] Failed to backup photo', err));
+  notifyStorageUpdated(KEYS.DOC_PHOTOS, updated);
+  return updated;
+};
+
+export const updateDocPhoto = (id: string, updates: Partial<DocPhoto>): DocPhoto[] => {
+  const current = getDocPhotos();
+  const updated = current.map((p) => (p.id === id ? { ...p, ...updates } : p));
+  safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(updated));
+  idbSet(KEYS.DOC_PHOTOS, updated).catch((err) => console.warn('[IDB] Failed to update photo', err));
+  notifyStorageUpdated(KEYS.DOC_PHOTOS, updated);
   return updated;
 };
 
 export const deleteDocPhoto = (id: string): DocPhoto[] => {
   const current = getDocPhotos();
   const updated = current.filter((p) => p.id !== id);
-  localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(updated));
+  idbSet(KEYS.DOC_PHOTOS, updated).catch((err) => console.warn('[IDB] Failed to update photos', err));
+  notifyStorageUpdated(KEYS.DOC_PHOTOS, updated);
   return updated;
 };
 
-export const initializeStorage = () => {
+export const initializeStorage = async () => {
   try {
-    if (!localStorage.getItem(KEYS.GERAK)) {
-      localStorage.setItem(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
+    // 1. Check GERAK records:
+    const localGerak = localStorage.getItem(KEYS.GERAK);
+    if (!localGerak) {
+      // Attempt recovery from IndexedDB
+      const idbGerak = await idbGet<GerakRecord[]>(KEYS.GERAK);
+      if (idbGerak && Array.isArray(idbGerak) && idbGerak.length > 0) {
+        safeLocalStorageSet(KEYS.GERAK, JSON.stringify(idbGerak));
+        notifyStorageUpdated(KEYS.GERAK, idbGerak);
+      } else {
+        safeLocalStorageSet(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
+        idbSet(KEYS.GERAK, INITIAL_GERAK_RECORDS).catch(() => {});
+      }
+    } else {
+      // Sync from localStorage to IndexedDB backup
+      try {
+        const parsed = JSON.parse(localGerak);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.GERAK, parsed).catch(() => {});
+        }
+      } catch {}
     }
-    if (!localStorage.getItem(KEYS.RTL)) {
-      localStorage.setItem(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
+
+    // 2. Check Action Plans (RTL):
+    const localRtl = localStorage.getItem(KEYS.RTL);
+    if (!localRtl) {
+      const idbRtl = await idbGet<ActionPlanItem[]>(KEYS.RTL);
+      if (idbRtl && Array.isArray(idbRtl) && idbRtl.length > 0) {
+        safeLocalStorageSet(KEYS.RTL, JSON.stringify(idbRtl));
+        notifyStorageUpdated(KEYS.RTL, idbRtl);
+      } else {
+        safeLocalStorageSet(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
+        idbSet(KEYS.RTL, INITIAL_ACTION_PLANS).catch(() => {});
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localRtl);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.RTL, parsed).catch(() => {});
+        }
+      } catch {}
     }
+
+    // 3. Check School Progress:
+    const localProg = localStorage.getItem(KEYS.SCHOOL_PROGRESS);
+    if (!localProg) {
+      const idbProg = await idbGet<SchoolProgressItem[]>(KEYS.SCHOOL_PROGRESS);
+      if (idbProg && Array.isArray(idbProg) && idbProg.length > 0) {
+        safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(idbProg));
+        notifyStorageUpdated(KEYS.SCHOOL_PROGRESS, idbProg);
+      } else {
+        safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
+        idbSet(KEYS.SCHOOL_PROGRESS, INITIAL_SCHOOL_PROGRESS).catch(() => {});
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localProg);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.SCHOOL_PROGRESS, parsed).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // 4. Check Impact Data:
     if (!localStorage.getItem(KEYS.IMPACT)) {
-      localStorage.setItem(KEYS.IMPACT, JSON.stringify(INITIAL_IMPACT_DATA));
+      const idbImpact = await idbGet<ImpactData>(KEYS.IMPACT);
+      if (idbImpact) {
+        safeLocalStorageSet(KEYS.IMPACT, JSON.stringify(idbImpact));
+      } else {
+        safeLocalStorageSet(KEYS.IMPACT, JSON.stringify(INITIAL_IMPACT_DATA));
+        idbSet(KEYS.IMPACT, INITIAL_IMPACT_DATA).catch(() => {});
+      }
     }
-    if (!localStorage.getItem(KEYS.SCHOOL_PROGRESS)) {
-      localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
+
+    // 5. Check Doc Photos:
+    const localPhotos = localStorage.getItem(KEYS.DOC_PHOTOS);
+    if (!localPhotos) {
+      const idbPhotos = await idbGet<DocPhoto[]>(KEYS.DOC_PHOTOS);
+      if (idbPhotos && Array.isArray(idbPhotos) && idbPhotos.length > 0) {
+        safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(idbPhotos));
+        notifyStorageUpdated(KEYS.DOC_PHOTOS, idbPhotos);
+      } else {
+        safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+        idbSet(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS).catch(() => {});
+        notifyStorageUpdated(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS);
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localPhotos);
+        if (Array.isArray(parsed)) {
+          const isLegacyDefaultOnly =
+            parsed.length <= 2 &&
+            parsed.every((p: any) => !p.teacherName || p.id === 'photo-default-1' || p.id === 'photo-default-2');
+          if (isLegacyDefaultOnly) {
+            safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+            idbSet(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS).catch(() => {});
+            notifyStorageUpdated(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS);
+          } else {
+            idbSet(KEYS.DOC_PHOTOS, parsed).catch(() => {});
+          }
+        }
+      } catch {}
     }
-    if (!localStorage.getItem(KEYS.DOC_PHOTOS)) {
-      localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+
+    // 6. Check Micro-Commitments (14 Hari):
+    const localCommitments = localStorage.getItem(KEYS.MICRO_COMMITMENTS);
+    if (!localCommitments) {
+      const idbCommitments = await idbGet<MicroCommitment[]>(KEYS.MICRO_COMMITMENTS);
+      if (idbCommitments && Array.isArray(idbCommitments) && idbCommitments.length > 0) {
+        safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(idbCommitments));
+        notifyStorageUpdated(KEYS.MICRO_COMMITMENTS, idbCommitments);
+      } else {
+        safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(INITIAL_MICRO_COMMITMENTS));
+        idbSet(KEYS.MICRO_COMMITMENTS, INITIAL_MICRO_COMMITMENTS).catch(() => {});
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localCommitments);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.MICRO_COMMITMENTS, parsed).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // 7. Check Reflections (Instrumen Refleksi Guru & KS):
+    const localReflections = localStorage.getItem(KEYS.REFLECTIONS);
+    if (!localReflections) {
+      const idbReflections = await idbGet<ReflectionReport[]>(KEYS.REFLECTIONS);
+      if (idbReflections && Array.isArray(idbReflections) && idbReflections.length > 0) {
+        safeLocalStorageSet(KEYS.REFLECTIONS, JSON.stringify(idbReflections));
+        notifyStorageUpdated(KEYS.REFLECTIONS, idbReflections);
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localReflections);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          idbSet(KEYS.REFLECTIONS, parsed).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // 8. Check Observed Problems:
+    const localObserved = localStorage.getItem(KEYS.OBSERVED_PROBLEMS);
+    if (!localObserved) {
+      const idbObserved = await idbGet<number[]>(KEYS.OBSERVED_PROBLEMS);
+      if (idbObserved && Array.isArray(idbObserved) && idbObserved.length > 0) {
+        safeLocalStorageSet(KEYS.OBSERVED_PROBLEMS, JSON.stringify(idbObserved));
+      } else {
+        safeLocalStorageSet(KEYS.OBSERVED_PROBLEMS, JSON.stringify([1, 3, 6]));
+        idbSet(KEYS.OBSERVED_PROBLEMS, [1, 3, 6]).catch(() => {});
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localObserved);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.OBSERVED_PROBLEMS, parsed).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // 9. Check Custom Questions:
+    const localCustom = localStorage.getItem(KEYS.CUSTOM_QUESTIONS);
+    if (!localCustom) {
+      const idbCustom = await idbGet<any[]>(KEYS.CUSTOM_QUESTIONS);
+      if (idbCustom && Array.isArray(idbCustom) && idbCustom.length > 0) {
+        safeLocalStorageSet(KEYS.CUSTOM_QUESTIONS, JSON.stringify(idbCustom));
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(localCustom);
+        if (Array.isArray(parsed)) {
+          idbSet(KEYS.CUSTOM_QUESTIONS, parsed).catch(() => {});
+        }
+      } catch {}
     }
   } catch (e) {
     console.error('Storage initialization failed', e);
@@ -314,14 +657,18 @@ export const saveMicroCommitment = (item: MicroCommitment): MicroCommitment[] =>
   const updated = exists
     ? current.map((c) => (c.id === item.id ? item : c))
     : [item, ...current];
-  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  idbSet(KEYS.MICRO_COMMITMENTS, updated).catch((err) => console.warn('[IDB] Failed to backup commitment', err));
+  notifyStorageUpdated(KEYS.MICRO_COMMITMENTS, updated);
   return updated;
 };
 
 export const deleteMicroCommitment = (id: string): MicroCommitment[] => {
   const current = getMicroCommitments();
   const updated = current.filter((c) => c.id !== id);
-  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  idbSet(KEYS.MICRO_COMMITMENTS, updated).catch((err) => console.warn('[IDB] Failed to update commitment', err));
+  notifyStorageUpdated(KEYS.MICRO_COMMITMENTS, updated);
   return updated;
 };
 
@@ -345,7 +692,9 @@ export const toggleCommitmentDay = (id: string, day: number): MicroCommitment[] 
       status: newStatus,
     };
   });
-  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(updated));
+  idbSet(KEYS.MICRO_COMMITMENTS, updated).catch((err) => console.warn('[IDB] Failed to update commitment day', err));
+  notifyStorageUpdated(KEYS.MICRO_COMMITMENTS, updated);
   return updated;
 };
 
@@ -366,14 +715,18 @@ export const saveCustomQuestion = (item: LabQuestion): LabQuestion[] => {
   const updated = exists
     ? current.map((q) => (q.id === item.id ? item : q))
     : [item, ...current];
-  localStorage.setItem(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  idbSet(KEYS.CUSTOM_QUESTIONS, updated).catch((err) => console.warn('[IDB] Failed to backup custom question', err));
+  notifyStorageUpdated(KEYS.CUSTOM_QUESTIONS, updated);
   return updated;
 };
 
 export const deleteCustomQuestion = (id: string): LabQuestion[] => {
   const current = getCustomQuestions();
   const updated = current.filter((q) => q.id !== id);
-  localStorage.setItem(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  safeLocalStorageSet(KEYS.CUSTOM_QUESTIONS, JSON.stringify(updated));
+  idbSet(KEYS.CUSTOM_QUESTIONS, updated).catch((err) => console.warn('[IDB] Failed to update custom question', err));
+  notifyStorageUpdated(KEYS.CUSTOM_QUESTIONS, updated);
   return updated;
 };
 
@@ -386,12 +739,23 @@ export const resetAllData = () => {
   localStorage.removeItem(KEYS.SCHOOL_PROGRESS);
   localStorage.removeItem(KEYS.DOC_PHOTOS);
   localStorage.removeItem(KEYS.MICRO_COMMITMENTS);
-  localStorage.setItem(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
-  localStorage.setItem(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
-  localStorage.setItem(KEYS.IMPACT, JSON.stringify(INITIAL_IMPACT_DATA));
-  localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
-  localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
-  localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(INITIAL_MICRO_COMMITMENTS));
+  localStorage.removeItem(KEYS.CUSTOM_QUESTIONS);
+
+  safeLocalStorageSet(KEYS.GERAK, JSON.stringify(INITIAL_GERAK_RECORDS));
+  safeLocalStorageSet(KEYS.RTL, JSON.stringify(INITIAL_ACTION_PLANS));
+  safeLocalStorageSet(KEYS.IMPACT, JSON.stringify(INITIAL_IMPACT_DATA));
+  safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(INITIAL_SCHOOL_PROGRESS));
+  safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(INITIAL_DOC_PHOTOS));
+  safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(INITIAL_MICRO_COMMITMENTS));
+
+  idbSet(KEYS.GERAK, INITIAL_GERAK_RECORDS).catch(() => {});
+  idbSet(KEYS.RTL, INITIAL_ACTION_PLANS).catch(() => {});
+  idbSet(KEYS.IMPACT, INITIAL_IMPACT_DATA).catch(() => {});
+  idbSet(KEYS.SCHOOL_PROGRESS, INITIAL_SCHOOL_PROGRESS).catch(() => {});
+  idbSet(KEYS.DOC_PHOTOS, INITIAL_DOC_PHOTOS).catch(() => {});
+  idbSet(KEYS.MICRO_COMMITMENTS, INITIAL_MICRO_COMMITMENTS).catch(() => {});
+
+  notifyStorageUpdated('ALL');
 };
 
 /**
@@ -435,31 +799,41 @@ export const importAllDataJson = (
     let restoredCount = 0;
 
     if (Array.isArray(payload.schools) && payload.schools.length > 0) {
-      localStorage.setItem(KEYS.SCHOOL_PROGRESS, JSON.stringify(payload.schools));
+      safeLocalStorageSet(KEYS.SCHOOL_PROGRESS, JSON.stringify(payload.schools));
+      idbSet(KEYS.SCHOOL_PROGRESS, payload.schools).catch(() => {});
       restoredCount += payload.schools.length;
     }
     if (Array.isArray(payload.actionPlans)) {
-      localStorage.setItem(KEYS.RTL, JSON.stringify(payload.actionPlans));
+      safeLocalStorageSet(KEYS.RTL, JSON.stringify(payload.actionPlans));
+      idbSet(KEYS.RTL, payload.actionPlans).catch(() => {});
       restoredCount += payload.actionPlans.length;
     }
     if (Array.isArray(payload.reflections)) {
-      localStorage.setItem(KEYS.REFLECTIONS, JSON.stringify(payload.reflections));
+      safeLocalStorageSet(KEYS.REFLECTIONS, JSON.stringify(payload.reflections));
+      idbSet(KEYS.REFLECTIONS, payload.reflections).catch(() => {});
     }
     if (Array.isArray(payload.gerakRecords)) {
-      localStorage.setItem(KEYS.GERAK, JSON.stringify(payload.gerakRecords));
+      safeLocalStorageSet(KEYS.GERAK, JSON.stringify(payload.gerakRecords));
+      idbSet(KEYS.GERAK, payload.gerakRecords).catch(() => {});
     }
     if (Array.isArray(payload.docPhotos)) {
-      localStorage.setItem(KEYS.DOC_PHOTOS, JSON.stringify(payload.docPhotos));
+      safeLocalStorageSet(KEYS.DOC_PHOTOS, JSON.stringify(payload.docPhotos));
+      idbSet(KEYS.DOC_PHOTOS, payload.docPhotos).catch(() => {});
     }
     if (Array.isArray(payload.observedProblems)) {
-      localStorage.setItem(KEYS.OBSERVED_PROBLEMS, JSON.stringify(payload.observedProblems));
+      safeLocalStorageSet(KEYS.OBSERVED_PROBLEMS, JSON.stringify(payload.observedProblems));
+      idbSet(KEYS.OBSERVED_PROBLEMS, payload.observedProblems).catch(() => {});
     }
     if (payload.impactData && typeof payload.impactData === 'object') {
-      localStorage.setItem(KEYS.IMPACT, JSON.stringify(payload.impactData));
+      safeLocalStorageSet(KEYS.IMPACT, JSON.stringify(payload.impactData));
+      idbSet(KEYS.IMPACT, payload.impactData).catch(() => {});
     }
     if (Array.isArray(payload.microCommitments)) {
-      localStorage.setItem(KEYS.MICRO_COMMITMENTS, JSON.stringify(payload.microCommitments));
+      safeLocalStorageSet(KEYS.MICRO_COMMITMENTS, JSON.stringify(payload.microCommitments));
+      idbSet(KEYS.MICRO_COMMITMENTS, payload.microCommitments).catch(() => {});
     }
+
+    notifyStorageUpdated('ALL');
 
     return {
       success: true,

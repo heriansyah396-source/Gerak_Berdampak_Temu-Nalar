@@ -14,6 +14,8 @@ import {
   Info,
   AlertCircle,
   Camera,
+  Users,
+  Plus,
 } from 'lucide-react';
 import {
   getActionPlans,
@@ -22,6 +24,7 @@ import {
   getSchoolProgress,
   calculateNGain,
   getDocPhotos,
+  KEYS,
 } from '../utils/storage';
 import {
   OFFICIAL_SCHOOLS_TELLU_LIMPOE,
@@ -39,6 +42,45 @@ interface PrintModalProps {
   defaultSchool?: string;
   defaultTeacher?: string;
 }
+
+// Helper to match photos intelligently per teacher and school
+const getPhotosForTeacherAndSchool = (
+  allPhotos: DocPhoto[],
+  schoolName: string,
+  teacherName?: string
+) => {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normTeacher = teacherName ? normalize(teacherName) : '';
+
+  // 1. Photos specifically matching this school AND this teacher
+  const teacherSpecific = allPhotos.filter((p) => {
+    const matchSchool =
+      p.schoolName === 'ALL' ||
+      p.schoolName.trim().toLowerCase() === schoolName.trim().toLowerCase();
+    if (!matchSchool) return false;
+
+    if (!p.teacherName || p.teacherName === 'ALL') return false;
+    if (!normTeacher) return false;
+
+    const normP = normalize(p.teacherName);
+    return normP === normTeacher || normTeacher.includes(normP) || normP.includes(normTeacher);
+  });
+
+  if (teacherSpecific.length > 0) {
+    return { photos: teacherSpecific, isSpecific: true };
+  }
+
+  // 2. Fallback to general school photos (photos with teacherName === 'ALL' or empty)
+  const generalSchool = allPhotos.filter((p) => {
+    const matchSchool =
+      p.schoolName.trim().toLowerCase() === schoolName.trim().toLowerCase() ||
+      p.schoolName === 'ALL';
+    const isGeneral = !p.teacherName || p.teacherName === 'ALL';
+    return matchSchool && isGeneral;
+  });
+
+  return { photos: generalSchool, isSpecific: false };
+};
 
 export const PrintModal: React.FC<PrintModalProps> = ({
   isOpen,
@@ -70,6 +112,21 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   const [printFeedback, setPrintFeedback] = useState<string | null>(null);
   const [showPhotoManager, setShowPhotoManager] = useState(false);
   const [docPhotos, setDocPhotos] = useState<DocPhoto[]>(() => getDocPhotos());
+
+  // Listen to photo storage updates from PhotoManagerModal or other components
+  useEffect(() => {
+    const handleStorageChange = (e: any) => {
+      if (e.detail?.key === KEYS.DOC_PHOTOS || e.key === KEYS.DOC_PHOTOS) {
+        setDocPhotos(getDocPhotos());
+      }
+    };
+    window.addEventListener('app_storage_updated' as any, handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('app_storage_updated' as any, handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // Sync if defaultSchool changes when modal reopens
   useEffect(() => {
@@ -522,13 +579,15 @@ export const PrintModal: React.FC<PrintModalProps> = ({
 
           <!-- V. DOKUMENTASI KEGIATAN PENDAMPINGAN DI KELAS -->
           <div class="section-box print-avoid-break">
-            <div class="section-title">V. Dokumentasi Foto Kegiatan Pendampingan di Kelas</div>
+            <div class="section-title">V. Dokumentasi Foto Kegiatan Pendampingan di Kelas — ${activeTeacher}</div>
             ${(() => {
-              const matchedPhotos = docPhotos.filter(
-                (p) => p.schoolName === 'ALL' || p.schoolName === sch.name
+              const { photos: matchedPhotos } = getPhotosForTeacherAndSchool(
+                docPhotos,
+                sch.name,
+                activeTeacher
               );
               if (matchedPhotos.length === 0) {
-                return `<div class="empty-notice" style="text-align: left;">Dokumentasi visual observasi terlampir dalam arsip digital kegiatan kepengawasan.</div>`;
+                return `<div class="empty-notice" style="text-align: left;">Dokumentasi visual kegiatan observasi dan pendampingan khusus guru ${activeTeacher} terlampir dalam arsip digital portofolio pengawas sekolah.</div>`;
               }
               return `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 6px;">
@@ -538,6 +597,14 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                     <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f8fafc; break-inside: avoid;">
                       <img src="${p.dataUrl}" alt="${p.title}" style="width: 100%; height: 140px; object-fit: cover; display: block;" />
                       <div style="padding: 6px 8px; font-size: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                          <span style="display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 8px; font-weight: bold; background: ${
+                            p.teacherName && p.teacherName !== 'ALL' ? '#dcfce7; color: #166534;' : '#e0f2fe; color: #0369a1;'
+                          }">
+                            ${p.teacherName && p.teacherName !== 'ALL' ? `Guru: ${p.teacherName}` : 'Umum Satuan Pendidikan'}
+                          </span>
+                          ${p.activityType ? `<span style="font-size: 8px; color: #7e22ce;">${p.activityType}</span>` : ''}
+                        </div>
                         <strong style="color: #0f172a; display: block; line-height: 1.3;">${p.title}</strong>
                         <span style="color: #475569; font-size: 9px; display: block; margin-top: 2px;">${p.caption}</span>
                         <span style="color: #64748b; font-size: 8.5px; font-style: italic; display: block; margin-top: 3px;">Waktu: ${p.date}</span>
@@ -1247,59 +1314,122 @@ export const PrintModal: React.FC<PrintModalProps> = ({
         {/* BAGIAN V: DOKUMENTASI FOTO KEGIATAN PENDAMPINGAN */}
         <div className="space-y-2 print-avoid-break">
           <div className="flex items-center justify-between border-b border-slate-300 pb-1">
-            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-              V. Dokumentasi Foto Kegiatan Pendampingan di Kelas
-            </h2>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
+                V. Dokumentasi Foto Kegiatan Pendampingan di Kelas
+              </h2>
+              <span className="text-[11px] text-slate-500 font-medium">
+                Sasaran Guru: <strong className="text-purple-900 font-bold">{activeTeacher}</strong> ({activeClass})
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setShowPhotoManager(true)}
-              className="text-[11px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 print:hidden cursor-pointer"
+              className="text-[11px] font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 print:hidden cursor-pointer bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-200 transition shadow-2xs"
             >
               <Camera className="w-3.5 h-3.5" />
-              <span>Kelola / Unggah Foto</span>
+              <span>Kelola Foto Guru Ini</span>
             </button>
           </div>
 
           {(() => {
-            const matchedPhotos = docPhotos.filter(
-              (p) => p.schoolName === 'ALL' || p.schoolName === school.name
+            const { photos: matchedPhotos, isSpecific } = getPhotosForTeacherAndSchool(
+              docPhotos,
+              school.name,
+              activeTeacher
             );
+
             if (matchedPhotos.length === 0) {
               return (
-                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-500 italic">
-                  Dokumentasi visual kegiatan observasi dan pendampingan terlampir dalam arsip digital
-                  pengawas sekolah.
+                <div className="p-4 rounded-xl border border-dashed border-purple-200 bg-purple-50/40 text-xs text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Camera className="w-5 h-5 text-purple-500 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        Belum ada foto kegiatan khusus untuk Guru: <span className="text-purple-700 font-bold">{activeTeacher}</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Foto guru lain sengaja dipisahkan demi menjaga keaslian dan akurasi lembar hasil supervisi perorangan.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoManager(true)}
+                    className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] shadow-xs cursor-pointer print:hidden shrink-0 flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Unggah Foto Khusus</span>
+                  </button>
                 </div>
               );
             }
+
             return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {matchedPhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className="rounded-xl border border-slate-300 bg-slate-50/70 overflow-hidden text-xs break-inside-avoid shadow-2xs"
-                  >
-                    <div className="h-36 sm:h-40 bg-slate-200 overflow-hidden">
-                      <img
-                        src={photo.dataUrl}
-                        alt={photo.title}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="p-2.5 space-y-1">
-                      <strong className="block text-slate-900 font-bold leading-tight">
-                        {photo.title}
-                      </strong>
-                      <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">
-                        {photo.caption}
-                      </p>
-                      <div className="text-[10px] text-slate-400 italic pt-1">
-                        Waktu Kegiatan: {photo.date}
+              <div className="space-y-2">
+                {!isSpecific && (
+                  <div className="text-[10.5px] text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center justify-between print:hidden">
+                    <span>
+                      Menampilkan dokumentasi umum satuan pendidikan (Belum ada foto khusus yang ditautkan ke <strong>{activeTeacher}</strong>).
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoManager(true)}
+                      className="text-amber-900 font-bold underline ml-2 cursor-pointer"
+                    >
+                      Unggah Khusus
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {matchedPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="rounded-xl border border-slate-300 bg-slate-50/70 overflow-hidden text-xs break-inside-avoid shadow-2xs flex flex-col"
+                    >
+                      <div className="h-36 sm:h-40 bg-slate-200 overflow-hidden relative group">
+                        <img
+                          src={photo.dataUrl}
+                          alt={photo.title}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                          {photo.teacherName && photo.teacherName !== 'ALL' ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-900/90 text-emerald-200 text-[9.5px] font-bold backdrop-blur-xs flex items-center gap-1">
+                              <User className="w-2.5 h-2.5" />
+                              <span>{photo.teacherName}</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-blue-900/90 text-blue-200 text-[9.5px] font-bold backdrop-blur-xs flex items-center gap-1">
+                              <Users className="w-2.5 h-2.5" />
+                              <span>Dokumentasi Umum</span>
+                            </span>
+                          )}
+                          {photo.activityType && (
+                            <span className="px-1.5 py-0.5 rounded bg-purple-900/90 text-purple-200 text-[9px] font-medium backdrop-blur-xs">
+                              {photo.activityType}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
+                        <div>
+                          <strong className="block text-slate-900 font-bold leading-tight">
+                            {photo.title}
+                          </strong>
+                          <p className="text-[11px] text-slate-600 leading-snug line-clamp-2 mt-0.5">
+                            {photo.caption}
+                          </p>
+                        </div>
+                        <div className="text-[10px] text-slate-400 italic pt-1 border-t border-slate-200/60 mt-1 flex items-center justify-between">
+                          <span>Waktu: {photo.date}</span>
+                          <span className="text-emerald-700 font-medium">Terverifikasi</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             );
           })()}
@@ -1721,6 +1851,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           isOpen={showPhotoManager}
           onClose={() => setShowPhotoManager(false)}
           defaultSchoolName={selectedSchoolName}
+          defaultTeacherName={customTeacher || selectedTeacherName}
+          availableTeachers={detectedTeachers}
           onPhotosUpdated={() => setDocPhotos(getDocPhotos())}
         />
       </div>

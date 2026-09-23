@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Compass,
   CheckCircle2,
@@ -12,12 +12,77 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Edit3,
+  ShieldCheck,
+  Database,
 } from 'lucide-react';
 import { GerakRecord, NavTab } from '../types';
 import { GERAK_STAGES, SCHOOL_LIST_TELLU_LIMPOE, OFFICIAL_SCHOOLS_TELLU_LIMPOE } from '../data/appData';
-import { getGerakRecords, saveGerakRecord, deleteGerakRecord } from '../utils/storage';
+import { getGerakRecords, saveGerakRecord, deleteGerakRecord, KEYS } from '../utils/storage';
 import { StagePagination } from './StagePagination';
 import { ArtefakBedahNalar } from './ArtefakBedahNalar';
+
+// Helper konversi format tanggal untuk input type="date"
+const parseToInputDate = (dateStr?: string): string => {
+  if (!dateStr) return new Date().toISOString().slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  const months: Record<string, string> = {
+    jan: '01', januari: '01',
+    feb: '02', februari: '02',
+    mar: '03', maret: '03',
+    apr: '04', april: '04',
+    mei: '05',
+    jun: '06', juni: '06',
+    jul: '07', juli: '07',
+    agu: '08', agust: '08', agustus: '08',
+    sep: '09', september: '09',
+    okt: '10', oktober: '10',
+    nov: '11', november: '11',
+    des: '12', desember: '12',
+  };
+
+  const parts = dateStr.trim().split(/[\s-]+/);
+  if (parts.length >= 3) {
+    const day = parts[0].padStart(2, '0');
+    const monthKey = parts[1].toLowerCase().replace('.', '');
+    const month = months[monthKey] || '01';
+    let year = parts[2];
+    if (year.length === 2) year = `20${year}`;
+    if (year.length === 4) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed)) {
+    return new Date(parsed).toISOString().slice(0, 10);
+  }
+
+  return new Date().toISOString().slice(0, 10);
+};
+
+// Helper format tanggal ke Bahasa Indonesia resmi (contoh: 23 September 2026 atau 23 Sep 2026)
+const formatIndonesianDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    return dateStr;
+  } catch {
+    return dateStr;
+  }
+};
 
 interface GerakViewProps {
   onNavigate: (tab: NavTab) => void;
@@ -25,19 +90,71 @@ interface GerakViewProps {
 
 export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
   const [activeStageIndex, setActiveStageIndex] = useState<number>(0);
-  const [records, setRecords] = useState<GerakRecord[]>(getGerakRecords());
+  const [records, setRecords] = useState<GerakRecord[]>(() => getGerakRecords());
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+
+  // Sync state with storage and listen to storage updates across components
+  useEffect(() => {
+    setRecords(getGerakRecords());
+
+    const handleStorageUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (!customEvt.detail || customEvt.detail.key === KEYS.GERAK || customEvt.detail.key === 'ALL') {
+        setRecords(getGerakRecords());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('app_storage_updated', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('app_storage_updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Form state
   const [schoolName, setSchoolName] = useState<string>(SCHOOL_LIST_TELLU_LIMPOE[0]);
   const [customSchool, setCustomSchool] = useState<string>('');
   const [level, setLevel] = useState<'SD' | 'SMP'>('SD');
+  const [actionDate, setActionDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [teacherName, setTeacherName] = useState<string>('');
   const [learningProblem, setLearningProblem] = useState<string>('');
   const [evidenceFound, setEvidenceFound] = useState<string>('');
   const [actionPlan, setActionPlan] = useState<string>('');
   const [supervisorNotes, setSupervisorNotes] = useState<string>('');
   const [formSuccess, setFormSuccess] = useState<boolean>(false);
+
+  const resetFormFields = () => {
+    setEditingRecordId(null);
+    setTeacherName('');
+    setActionDate(new Date().toISOString().slice(0, 10));
+    setLearningProblem('');
+    setEvidenceFound('');
+    setActionPlan('');
+    setSupervisorNotes('');
+  };
+
+  const handleStartEdit = (rec: GerakRecord) => {
+    setEditingRecordId(rec.id);
+    setSchoolName(rec.schoolName);
+    setLevel(rec.level);
+    setTeacherName(rec.teacherName);
+    setActionDate(parseToInputDate(rec.timestamp));
+    setLearningProblem(rec.learningProblem);
+    setEvidenceFound(rec.evidenceFound);
+    setActionPlan(rec.actionPlan);
+    setSupervisorNotes(rec.supervisorNotes || '');
+    setShowForm(true);
+
+    setTimeout(() => {
+      const el = document.getElementById('form-tahap-gerak');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   const activeStage = GERAK_STAGES[activeStageIndex];
 
@@ -48,13 +165,15 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
         ? customSchool.trim()
         : schoolName;
 
-    const newRecord: GerakRecord = {
-      id: `gerak-${Date.now()}`,
-      timestamp: new Date().toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
+    const finalTimestamp = formatIndonesianDate(actionDate) || new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const recordData: GerakRecord = {
+      id: editingRecordId || `gerak-${Date.now()}`,
+      timestamp: finalTimestamp,
       schoolName: finalSchool,
       level,
       teacherName: teacherName.trim() || 'Guru Dampingan',
@@ -64,19 +183,14 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
       supervisorNotes: supervisorNotes.trim() || undefined,
     };
 
-    const updated = saveGerakRecord(newRecord);
+    const updated = saveGerakRecord(recordData);
     setRecords(updated);
     setFormSuccess(true);
     setTimeout(() => {
       setFormSuccess(false);
       setShowForm(false);
-      // Reset fields
-      setTeacherName('');
-      setLearningProblem('');
-      setEvidenceFound('');
-      setActionPlan('');
-      setSupervisorNotes('');
-    }, 1200);
+      resetFormFields();
+    }, 1800);
   };
 
   const handleDelete = (id: string) => {
@@ -255,12 +369,15 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                 Formulir Pendampingan Nyata
               </span>
               <h3 className="text-xl sm:text-2xl font-bold">
-                Mulai Catatan Tahap GERAK
+                {editingRecordId ? 'Edit Catatan Tahap GERAK' : 'Mulai Catatan Tahap GERAK'}
               </h3>
             </div>
             <button
-              onClick={() => setShowForm(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg"
+              onClick={() => {
+                setShowForm(false);
+                resetFormFields();
+              }}
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 bg-slate-800 rounded-lg hover:bg-slate-700 transition cursor-pointer"
             >
               Tutup
             </button>
@@ -270,20 +387,21 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
             <div className="p-6 rounded-2xl bg-emerald-600/30 border border-emerald-500 text-center space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <div className="text-base font-bold text-emerald-200">
-                Catatan GERAK Berhasil Disimpan!
+                {editingRecordId ? 'Perubahan Catatan GERAK Berhasil Disimpan!' : 'Catatan GERAK Berhasil Disimpan Permanen!'}
               </div>
-              <p className="text-xs text-emerald-300">
-                Data telah dicatat ke dalam ringkasan supervisi dan tersimpan di penyimpanan lokal browser.
+              <p className="text-xs text-emerald-300 max-w-lg mx-auto leading-relaxed">
+                Data telah tersimpan di <strong>LocalStorage</strong> dan dicadangkan ke <strong>IndexedDB Browser</strong>. Data aman dan tidak akan hilang saat browser ditutup atau dibuka keesokan harinya.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Sekolah */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-300">
-                      Nama Sekolah Binaan (25 Sekolah)
+                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <School className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Nama Sekolah Binaan (25 Sekolah)</span>
                     </label>
                     <span className="text-[10px] text-blue-400 font-semibold bg-blue-900/40 px-1.5 py-0.5 rounded border border-blue-700/50">
                       Tellu Limpoe
@@ -333,8 +451,9 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
 
                 {/* Jenjang */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Jenjang Sekolah
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Jenjang Sekolah</span>
                   </label>
                   <div className="flex gap-2">
                     {(['SD', 'SMP'] as const).map((lvl) => (
@@ -342,7 +461,7 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                         key={lvl}
                         type="button"
                         onClick={() => setLevel(lvl)}
-                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition ${
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                           level === lvl
                             ? 'bg-blue-600 text-white border-blue-500'
                             : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
@@ -354,11 +473,48 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
+                {/* Tanggal Pendampingan */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tanggal Pendampingan</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
+                      Wajib
+                    </span>
+                  </div>
+                  <input
+                    type="date"
+                    required
+                    id="input-tanggal-pendampingan-gerak"
+                    value={actionDate}
+                    onChange={(e) => setActionDate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
+                    <span>Terpilih: <strong className="text-slate-200">{formatIndonesianDate(actionDate)}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => setActionDate(new Date().toISOString().slice(0, 10))}
+                      className="text-blue-400 hover:text-blue-300 hover:underline text-[10px] cursor-pointer"
+                    >
+                      Hari Ini
+                    </button>
+                  </div>
+                </div>
+
                 {/* Nama Guru */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Nama Guru yang Didampingi
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Nama Guru yang Didampingi</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
+                      Wajib
+                    </span>
+                  </div>
                   <input
                     type="text"
                     required
@@ -418,16 +574,20 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                  onClick={() => {
+                    setShowForm(false);
+                    resetFormFields();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition"
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
                 >
-                  Simpan Catatan GERAK
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{editingRecordId ? 'Simpan Perubahan Catatan GERAK' : 'Simpan Catatan GERAK'}</span>
                 </button>
               </div>
             </form>
@@ -437,13 +597,24 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
 
       {/* DAFTAR RINGKASAN DATA GERAK YANG DISIMPAN */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">
-            Ringkasan Catatan Pendampingan GERAK
-          </h3>
-          <span className="text-xs text-blue-600 font-semibold">
-            {records.length} Sekolah/Guru Tercatat
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">
+              Ringkasan Catatan Pendampingan GERAK
+            </h3>
+            <p className="text-xs text-slate-500">
+              Riwayat pendampingan tersimpan secara permanen di perangkat Anda.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Penyimpanan Aman (LocalStorage & IndexedDB)</span>
+            </span>
+            <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+              {records.length} Catatan
+            </span>
+          </div>
         </div>
 
         {records.length === 0 ? (
@@ -463,8 +634,8 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                       <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
                         Jenjang {rec.level}
                       </span>
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
+                      <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
                         {rec.timestamp}
                       </span>
                     </div>
@@ -475,13 +646,22 @@ export const GerakView: React.FC<GerakViewProps> = ({ onNavigate }) => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleDelete(rec.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                    title="Hapus Catatan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleStartEdit(rec)}
+                      className="p-1.5 rounded-lg text-blue-700 hover:text-blue-800 hover:bg-blue-50 transition border border-blue-200 cursor-pointer"
+                      title="Edit Catatan & Tanggal"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(rec.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-200 cursor-pointer"
+                      title="Hapus Catatan"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-xs pt-2 border-t border-slate-100">

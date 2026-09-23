@@ -1558,6 +1558,7 @@ export const ImpactDashboardView: React.FC<ImpactDashboardViewProps> = ({
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         defaultSchoolName={selectedSchool?.schoolName}
+        defaultTeacherName={selectedSchool?.teacherName}
         onPhotosUpdated={handleRefreshAll}
       />
     </div>

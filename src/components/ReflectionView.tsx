@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -25,7 +25,7 @@ import {
   SCHOOL_LIST_TELLU_LIMPOE,
   OFFICIAL_SCHOOLS_TELLU_LIMPOE,
 } from '../data/appData';
-import { saveReflection, getReflections, deleteReflection } from '../utils/storage';
+import { saveReflection, getReflections, deleteReflection, KEYS } from '../utils/storage';
 import { StagePagination } from './StagePagination';
 
 interface ReflectionViewProps {
@@ -75,8 +75,28 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({ onNavigate }) =>
 
   // Output report and saved reflections
   const [submittedReport, setSubmittedReport] = useState<ReflectionReport | null>(null);
-  const [savedReflections, setSavedReflections] = useState<ReflectionReport[]>(getReflections());
+  const [savedReflections, setSavedReflections] = useState<ReflectionReport[]>(() => getReflections());
   const [filterRole, setFilterRole] = useState<'all' | 'guru' | 'kepala_sekolah'>('all');
+
+  // Live storage event listener
+  useEffect(() => {
+    setSavedReflections(getReflections());
+
+    const handleStorageUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (!customEvt.detail || customEvt.detail.key === KEYS.REFLECTIONS || customEvt.detail.key === 'ALL') {
+        setSavedReflections(getReflections());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('app_storage_updated', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('app_storage_updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Current questions depending on active role
   const currentQuestions =
@@ -243,8 +263,11 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({ onNavigate }) =>
             <ClipboardCheck className="w-3.5 h-3.5 text-blue-600" />
             <span>Refleksi Mandiri & Kemitraan Supervisi Klinis</span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <span>Tellu Limpoe • 25 Satuan Pendidikan</span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-semibold shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Penyimpanan Aman (LocalStorage & IndexedDB)</span>
+            </span>
           </div>
         </div>
 
@@ -712,9 +735,10 @@ export const ReflectionView: React.FC<ReflectionViewProps> = ({ onNavigate }) =>
 
           {/* Action Footer */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <span className="text-xs text-slate-500">
-              Data refleksi ini otomatis tersimpan di memori aplikasi dan siap dicantumkan pada Dokumen Supervisi Resmi.
-            </span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Data refleksi ini tersimpan permanen di LocalStorage & dicadangkan di IndexedDB.</span>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Copy,
   Info,
+  X,
 } from 'lucide-react';
 import { MicroCommitment } from '../types';
 import { OFFICIAL_SCHOOLS_TELLU_LIMPOE } from '../data/appData';
@@ -29,6 +30,7 @@ import {
   saveMicroCommitment,
   deleteMicroCommitment,
   toggleCommitmentDay,
+  KEYS,
 } from '../utils/storage';
 
 interface PresetCommitment {
@@ -73,12 +75,37 @@ const PRESET_TEMPLATES: PresetCommitment[] = [
 
 export const MikroKomitmenForm: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tracker' | 'form' | 'guide'>('tracker');
-  const [commitments, setCommitments] = useState<MicroCommitment[]>(getMicroCommitments());
+  const [commitments, setCommitments] = useState<MicroCommitment[]>(() => getMicroCommitments());
   const [selectedSchoolFilter, setSelectedSchoolFilter] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [printCommitment, setPrintCommitment] = useState<MicroCommitment | null>(null);
+  const [successBanner, setSuccessBanner] = useState<{
+    teacherName: string;
+    schoolName: string;
+    strategyTitle: string;
+  } | null>(null);
+
+  // Sync state with storage and listen to storage updates across components
+  useEffect(() => {
+    setCommitments(getMicroCommitments());
+
+    const handleStorageUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (!customEvt.detail || customEvt.detail.key === KEYS.MICRO_COMMITMENTS || customEvt.detail.key === 'ALL') {
+        setCommitments(getMicroCommitments());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('app_storage_updated', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('app_storage_updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Form State
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -197,8 +224,18 @@ export const MikroKomitmenForm: React.FC = () => {
 
     const updated = saveMicroCommitment(newCommitment);
     setCommitments(updated);
+    setSuccessBanner({
+      teacherName: newCommitment.teacherName,
+      schoolName: newCommitment.schoolName,
+      strategyTitle: newCommitment.strategyTitle,
+    });
     setActiveTab('tracker');
-    alert('Mikro-komitmen 14 hari berhasil didaftarkan! Mulai pendampingan.');
+    setFormData((prev) => ({
+      ...prev,
+      teacherName: '',
+      commitmentText: PRESET_TEMPLATES[0].text,
+      observableSuccessIndicator: PRESET_TEMPLATES[0].indicator,
+    }));
   };
 
   const handleCopyWhatsapp = (c: MicroCommitment) => {
@@ -302,6 +339,35 @@ export const MikroKomitmenForm: React.FC = () => {
       {/* TAB 1: TRACKER DAFTAR KOMITMEN 14 HARI */}
       {activeTab === 'tracker' && (
         <div className="space-y-6">
+          {/* Success Notification Banner */}
+          {successBanner && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-400 text-slate-800 shadow-sm flex items-start justify-between gap-3 animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <div className="font-extrabold text-sm sm:text-base text-emerald-950 flex flex-wrap items-center gap-2">
+                    <span>Mikro-Komitmen 14 Hari Berhasil Disimpan Permanen!</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-black uppercase">
+                      Tersimpan Aman
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-900 leading-relaxed">
+                    Aksi mikro untuk <strong>{successBanner.teacherName}</strong> ({successBanner.schoolName}) dengan fokus <em>"{successBanner.strategyTitle}"</em> telah tersimpan di <strong>LocalStorage</strong> dan diamankan di <strong>IndexedDB Browser</strong>. Data tidak akan hilang saat aplikasi ditutup atau dibuka keesokan harinya.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSuccessBanner(null)}
+                className="p-1.5 rounded-lg hover:bg-emerald-200 text-emerald-800 transition cursor-pointer"
+                title="Tutup pemberitahuan"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Filter Bar */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
             <div className="w-full md:w-auto flex-1 flex flex-col sm:flex-row gap-3">
@@ -576,13 +642,19 @@ export const MikroKomitmenForm: React.FC = () => {
           onSubmit={handleSubmit}
           className="bg-white rounded-3xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-7"
         >
-          <div className="pb-4 border-b border-slate-200 space-y-1">
-            <h4 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-              Formulir Kesepakatan Mikro-Komitmen 14 Hari
-            </h4>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Disepakati bersama antara Pengawas Sekolah Pembina dan Guru dampingan saat sesi coaching dialog refleksi klinis.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div className="space-y-1">
+              <h4 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                Formulir Kesepakatan Mikro-Komitmen 14 Hari
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600">
+                Disepakati bersama antara Pengawas Sekolah Pembina dan Guru dampingan saat sesi coaching dialog refleksi klinis.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-semibold shadow-xs shrink-0">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Penyimpanan Aman (LocalStorage & IndexedDB)</span>
+            </div>
           </div>
 
           {/* Quick Preset Selector */}
@@ -754,7 +826,7 @@ export const MikroKomitmenForm: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-xs sm:text-sm font-extrabold hover:bg-blue-700 shadow-md flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-700/25 flex items-center gap-2 transition cursor-pointer active:scale-[0.98]"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Simpan & Mulai Siklus 14 Hari</span>

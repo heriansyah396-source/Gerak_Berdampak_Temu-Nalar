@@ -134,6 +134,7 @@ export default function App() {
         onSelectTab={handleNavigate}
         onOpenPrintModal={handleOpenPrintModal}
         onOpenBackupModal={() => setIsBackupModalOpen(true)}
+        onResetData={() => window.location.reload()}
       />
 
       {/* Print Document Modal */}

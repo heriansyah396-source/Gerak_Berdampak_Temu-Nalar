@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileSpreadsheet,
   PlusCircle,
@@ -14,6 +14,7 @@ import {
   Calendar,
   Printer,
   Edit3,
+  ShieldCheck,
 } from 'lucide-react';
 import { ActionPlanItem, NavTab } from '../types';
 import {
@@ -21,7 +22,7 @@ import {
   TEACHING_STRATEGIES,
   OFFICIAL_SCHOOLS_TELLU_LIMPOE,
 } from '../data/appData';
-import { getActionPlans, saveActionPlan, deleteActionPlan } from '../utils/storage';
+import { getActionPlans, saveActionPlan, deleteActionPlan, KEYS } from '../utils/storage';
 import { StagePagination } from './StagePagination';
 
 // Helper konversi format tanggal untuk input type="date"
@@ -92,9 +93,29 @@ interface RtlViewProps {
 }
 
 export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }) => {
-  const [plans, setPlans] = useState<ActionPlanItem[]>(getActionPlans());
+  const [plans, setPlans] = useState<ActionPlanItem[]>(() => getActionPlans());
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+
+  // Live storage event listener
+  useEffect(() => {
+    setPlans(getActionPlans());
+
+    const handleStorageUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (!customEvt.detail || customEvt.detail.key === KEYS.RTL || customEvt.detail.key === 'ALL') {
+        setPlans(getActionPlans());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('app_storage_updated', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('app_storage_updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Form states
   const [schoolName, setSchoolName] = useState<string>(SCHOOL_LIST_TELLU_LIMPOE[0]);
@@ -209,9 +230,15 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
     <div className="space-y-10 max-w-6xl mx-auto">
       {/* Intro Header */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Komitmen Perbaikan Nyata</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Komitmen Perbaikan Nyata</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-semibold shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Penyimpanan Aman (LocalStorage & IndexedDB)</span>
+          </div>
         </div>
 
         <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -273,7 +300,7 @@ export const RtlView: React.FC<RtlViewProps> = ({ onNavigate, onOpenPrintModal }
                 {editingPlanId ? 'Perubahan Kesepakatan Berhasil Disimpan!' : 'Rencana Tindakan Berhasil Dibuat!'}
               </div>
               <p className="text-xs text-emerald-300">
-                Data telah tersimpan rapi dalam kartu RTL dan siap dicetak.
+                Data telah tersimpan permanen di LocalStorage & dicadangkan di IndexedDB Browser.
               </p>
             </div>
           ) : (
